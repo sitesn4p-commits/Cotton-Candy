@@ -479,6 +479,18 @@ body { background: var(--cream); }
 .gallery-switch { display: flex; gap: 8px; margin-bottom: 31px; }
 .gallery-switch a { border: 1px solid var(--line); font-size: 10px; font-weight: 700; letter-spacing: .8px; padding: 10px 17px; text-transform: uppercase; }
 .gallery-switch a.active, .gallery-switch a:hover { background: var(--ink); border-color: var(--ink); color: white; }
+.gallery-image-button { background: none; border: 0; cursor: zoom-in; display: block; overflow: hidden; padding: 0; position: relative; width: 100%; }
+.gallery-image-button:after { background: rgba(50, 37, 46, .56); color: white; content: 'View full screen ↗'; font-size: 10px; font-weight: 700; inset: auto 0 0; letter-spacing: .8px; opacity: 0; padding: 13px; position: absolute; text-align: center; text-transform: uppercase; transform: translateY(100%); transition: opacity .25s, transform .25s; }
+.gallery-image-button img { display: block; transition: transform .35s ease; width: 100%; }
+.gallery-image-button:hover img, .gallery-image-button:focus-visible img { transform: scale(1.04); }
+.gallery-image-button:hover:after, .gallery-image-button:focus-visible:after { opacity: 1; transform: translateY(0); }
+.gallery-image-button:focus-visible { outline: 3px solid var(--deep-rose); outline-offset: 4px; }
+.gallery-lightbox { align-items: center; background: rgba(31, 23, 28, .92); display: flex; inset: 0; justify-content: center; padding: 30px; position: fixed; z-index: 1200; }
+.gallery-lightbox-content { max-height: 100%; max-width: min(1120px, 100%); position: relative; }
+.gallery-lightbox-content img { box-shadow: 0 25px 75px rgba(0, 0, 0, .35); display: block; max-height: calc(100vh - 105px); max-width: 100%; object-fit: contain; }
+.gallery-lightbox-content p { color: white; font-size: 12px; letter-spacing: .5px; margin: 12px 0 0; text-align: center; }
+.gallery-lightbox-close { align-items: center; background: white; border: 0; border-radius: 50%; color: var(--ink); cursor: pointer; display: flex; font-size: 28px; height: 40px; justify-content: center; line-height: 1; position: absolute; right: -16px; top: -16px; width: 40px; z-index: 1; }
+.gallery-lightbox-close:hover, .gallery-lightbox-close:focus-visible { background: var(--rose); color: white; }
 .video-gallery video, .video-gallery iframe { aspect-ratio: 16 / 9; background: #271e24; border: 0; display: block; width: 100%; }
 .video-gallery .gallery-item figcaption { pointer-events: none; }
 
