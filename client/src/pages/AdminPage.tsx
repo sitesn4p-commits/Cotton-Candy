@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useFeedback } from '../components/Feedback'
 import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type MediaAsset, type Offering, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
@@ -120,13 +120,13 @@ export function AdminRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null)
   const [activationRequest, setActivationRequest] = useState<ServiceRequest | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const load = useCallback(() => api.adminServiceRequests(token).then((items) => { setRequests(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load requests.'))), [token])
+  const load = useCallback(() => api.adminServiceRequests(token).then((items) => { setRequests(items.filter((item) => item.status !== 'complete')); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load requests.'))), [token])
   useEffect(() => { void load() }, [load])
 
   const changeStatus = async (request: ServiceRequest, status: RequestStatus) => {
     try {
       const updatedRequest = await api.updateServiceRequestStatus(token, request._id, status)
-      setRequests((current) => current.map((item) => item._id === updatedRequest._id ? updatedRequest : item))
+      setRequests((current) => current.map((item) => item._id === updatedRequest._id ? updatedRequest : item).filter((item) => item.status !== 'complete'))
       setSelectedRequest((current) => current?._id === updatedRequest._id ? updatedRequest : current)
       notify({ title: 'Order status updated', message: `${request.offeringName} is now marked ${status}.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to update request.')) }
@@ -152,12 +152,31 @@ export function AdminRequestsPage() {
   return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Customer orders</p><h1>Service & hire <em>requests.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><button className="request-admin-summary" type="button" onClick={() => setSelectedRequest(request)}><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b>{request.type === 'hire' ? ` · ${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : ''}</p><small>{request.email}{request.promotionTitle ? ` · ${request.promotionTitle} (${request.discountPercent}% off)` : ''}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small><span>View full order →</span></button><div className="request-admin-actions"><select aria-label={`Change status for ${request.offeringName}`} className={`request-status ${request.status}`} value={request.status} onChange={(event) => requestStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><button type="button" onClick={() => void deleteRequest(request)}>Delete</button></div></article>)}</div> : <EmptyState>Customer service and hire requests will appear here.</EmptyState>}</section>{selectedRequest ? <OrderDetailDialog request={selectedRequest} onClose={() => setSelectedRequest(null)} onStatusChange={requestStatusChange} onDelete={deleteRequest} /> : null}{activationRequest ? <ActivationEmailDialog request={activationRequest} onClose={() => setActivationRequest(null)} onActivate={async () => { await changeStatus(activationRequest, 'active'); setActivationRequest(null) }} /> : null}</section>
 }
 
-function OrderDetailDialog({ request, onClose, onStatusChange, onDelete }: { request: ServiceRequest; onClose: () => void; onStatusChange: (request: ServiceRequest, status: RequestStatus) => void; onDelete: (request: ServiceRequest) => Promise<void> }) {
+type PromotionCampaignActions = { promotions: Promotion[]; onConsentChange: (request: ServiceRequest, marketingConsent: boolean) => Promise<void>; onSend: (request: ServiceRequest, promotionId: string, subject: string, message: string) => Promise<void> }
+
+function OrderDetailDialog({ request, onClose, onStatusChange, onDelete, campaign }: { request: ServiceRequest; onClose: () => void; onStatusChange: (request: ServiceRequest, status: RequestStatus) => void; onDelete: (request: ServiceRequest) => Promise<void>; campaign?: PromotionCampaignActions }) {
   const eventDate = request.eventDate ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'long' }).format(new Date(request.eventDate)) : 'Not provided'
   const submittedAt = new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt))
   const itemLabel = request.type === 'hire' ? 'Hire item' : 'Service'
+  const emailSection = campaign ? <PromotionEmailComposer request={request} campaign={campaign} /> : <ActivationEmailPreview request={request} />
 
-  return <Dialog title="Order details" onClose={onClose}><div className="order-detail-topline"><div><p className="eyebrow">{request.trackingId || 'Customer request'}</p><h3>{request.offeringName}</h3></div><span className={`request-status ${request.status}`}>{request.status}</span></div><div className="order-detail-grid"><section><p className="order-detail-label">Customer</p><strong>{request.customerName || 'Customer'}</strong><a href={`mailto:${request.email}`}>{request.email || 'No email supplied'}</a>{request.phone ? <a href={`tel:${request.phone}`}>{request.phone}</a> : <small>No phone number supplied</small>}</section><section><p className="order-detail-label">Event</p><strong>{request.eventType || 'Celebration details to confirm'}</strong><span>{eventDate}</span><small>Submitted {submittedAt}</small></section><section><p className="order-detail-label">Booking</p><strong>{itemLabel}</strong><span>{request.type === 'hire' ? `${request.hireDays} hire day${request.hireDays === 1 ? '' : 's'}` : 'Tailored event service'}</span><small>Price per day/service: {formatLkr(request.unitPrice)}</small></section><section><p className="order-detail-label">Order status</p><select className={`request-status ${request.status}`} value={request.status} onChange={(event) => onStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><small>Update this as the booking progresses.</small></section></div>{request.notes ? <section className="order-detail-notes"><p className="order-detail-label">Customer notes</p><p>{request.notes}</p></section> : null}<section className="order-price-summary"><div><span>Subtotal</span><strong>{formatLkr(request.subtotal)}</strong></div>{request.discountAmount > 0 ? <div><span>{request.promotionTitle || 'Promotion'} {request.discountPercent ? `(${request.discountPercent}% off)` : ''}</span><strong>−{formatLkr(request.discountAmount)}</strong></div> : null}<div className="order-price-total"><span>Total booking value</span><strong>{formatLkr(request.totalPrice)}</strong></div></section><section className="order-email-preview"><div><span aria-hidden="true">✉</span><div><p className="order-detail-label">Activation email</p><h3>{request.status === 'active' ? 'Ready to notify the customer' : 'Sent when this order becomes active'}</h3><p>An elegant confirmation email will go to {request.email || 'the customer'} with the order details and active status.</p></div></div><button type="button" disabled>Email sending setup next</button></section><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={() => void onDelete(request)}>Delete order</button><button className="admin-button" type="button" onClick={onClose}>Done</button></div></Dialog>
+  return <Dialog title="Order details" onClose={onClose}><div className="order-detail-topline"><div><p className="eyebrow">{request.trackingId || 'Customer request'}</p><h3>{request.offeringName}</h3></div><span className={`request-status ${request.status}`}>{request.status}</span></div><div className="order-detail-grid"><section><p className="order-detail-label">Customer</p><strong>{request.customerName || 'Customer'}</strong><a href={`mailto:${request.email}`}>{request.email || 'No email supplied'}</a>{request.phone ? <a href={`tel:${request.phone}`}>{request.phone}</a> : <small>No phone number supplied</small>}</section><section><p className="order-detail-label">Event</p><strong>{request.eventType || 'Celebration details to confirm'}</strong><span>{eventDate}</span><small>Submitted {submittedAt}</small></section><section><p className="order-detail-label">Booking</p><strong>{itemLabel}</strong><span>{request.type === 'hire' ? `${request.hireDays} hire day${request.hireDays === 1 ? '' : 's'}` : 'Tailored event service'}</span><small>Price per day/service: {formatLkr(request.unitPrice)}</small></section><section><p className="order-detail-label">Order status</p><select className={`request-status ${request.status}`} value={request.status} onChange={(event) => onStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><small>Update this as the booking progresses.</small></section></div>{request.notes ? <section className="order-detail-notes"><p className="order-detail-label">Customer notes</p><p>{request.notes}</p></section> : null}<section className="order-price-summary"><div><span>Subtotal</span><strong>{formatLkr(request.subtotal)}</strong></div>{request.discountAmount > 0 ? <div><span>{request.promotionTitle || 'Promotion'} {request.discountPercent ? `(${request.discountPercent}% off)` : ''}</span><strong>−{formatLkr(request.discountAmount)}</strong></div> : null}<div className="order-price-total"><span>Total booking value</span><strong>{formatLkr(request.totalPrice)}</strong></div></section>{emailSection}<div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={() => void onDelete(request)}>Delete order</button><button className="admin-button" type="button" onClick={onClose}>Done</button></div></Dialog>
+}
+
+function ActivationEmailPreview({ request }: { request: ServiceRequest }) {
+  const token = useAdminToken()
+  const { notify } = useFeedback()
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const send = async () => {
+    setSending(true); setError(null)
+    try {
+      await api.sendActivationEmail(token, request._id)
+      notify({ title: 'Activation email sent', message: `Booking confirmation was sent to ${request.email}.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to send the activation email.')) } finally { setSending(false) }
+  }
+
+  return <section className="order-email-preview"><div><span aria-hidden="true">✉</span><div><p className="order-detail-label">Activation email</p><h3>{request.status === 'active' ? 'Ready to notify the customer' : 'Sent when this order becomes active'}</h3><p>An elegant booking confirmation will go to {request.email || 'the customer'} with the order details and active status.</p></div></div><button type="button" disabled={request.status !== 'active' || sending} onClick={() => void send()}>{sending ? 'Sending…' : request.status === 'active' ? 'Send activation email' : 'Set active first'}</button>{error ? <p className="campaign-error">{error}</p> : null}</section>
 }
 
 function ActivationEmailDialog({ request, onClose, onActivate }: { request: ServiceRequest; onClose: () => void; onActivate: () => Promise<void> }) {
@@ -169,6 +188,135 @@ function ActivationEmailDialog({ request, onClose, onActivate }: { request: Serv
   }
 
   return <Dialog title="Make this order active?" onClose={onClose}><section className="activation-email-dialog"><span aria-hidden="true">✦</span><p>{request.customerName || 'This customer'} will see the booking as active when they search using {request.email || 'their email address'}.</p><div className="activation-email-preview"><p className="order-detail-label">Customer email notice</p><strong>“Your Cotton Candy booking is now active.”</strong><small>The send button will be enabled after the Resend email connection is added.</small><button type="button" disabled>Send activation email</button></div><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={onClose}>Keep pending</button><button className="admin-button" type="button" onClick={() => void activate()} disabled={saving}>{saving ? 'Activating…' : 'Activate without email'}</button></div></section></Dialog>
+}
+
+function promotionSubject(promotion: Promotion) { return `${promotion.title} — Cotton Candy Event Deco` }
+function promotionMessage(promotion: Promotion) { return `${promotion.description}\n\nWe would love to help make your next celebration beautiful.` }
+
+function PromotionEmailComposer({ request, campaign }: { request: ServiceRequest; campaign: PromotionCampaignActions }) {
+  const { confirm, notify } = useFeedback()
+  const promotions = campaign.promotions.filter((promotion) => promotion.enabled)
+  const [promotionId, setPromotionId] = useState('')
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const selectedPromotion = promotions.find((promotion) => promotion._id === promotionId)
+
+  useEffect(() => {
+    if (promotionId || !promotions[0]) return
+    setPromotionId(promotions[0]._id)
+    setSubject(promotionSubject(promotions[0]))
+    setMessage(promotionMessage(promotions[0]))
+  }, [promotionId, promotions])
+
+  const choosePromotion = (nextPromotionId: string) => {
+    const promotion = promotions.find((item) => item._id === nextPromotionId)
+    setPromotionId(nextPromotionId)
+    if (promotion) {
+      setSubject(promotionSubject(promotion))
+      setMessage(promotionMessage(promotion))
+    }
+  }
+
+  const recordConsent = async () => {
+    if (!await confirm({ title: 'Record marketing permission?', message: 'Only continue if this customer clearly agreed to receive Cotton Candy promotion emails. Every promotion email includes an unsubscribe link.', confirmLabel: 'Record permission', tone: 'info' })) return
+    setSending(true)
+    try {
+      await campaign.onConsentChange(request, true)
+      notify({ title: 'Permission recorded', message: `${request.customerName || 'This customer'} can now receive promotion emails.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to update permission.')) } finally { setSending(false) }
+  }
+
+  const send = async () => {
+    if (!selectedPromotion) return setError('Create or activate a promotion before sending an email.')
+    setSending(true); setError(null)
+    try {
+      await campaign.onSend(request, selectedPromotion._id, subject, message)
+      notify({ title: 'Promotion email sent', message: `${selectedPromotion.title} was sent to ${request.email}.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to send this promotion email.')) } finally { setSending(false) }
+  }
+
+  if (request.marketingUnsubscribedAt) return <section className="promotion-composer blocked"><p className="order-detail-label">Promotion emails</p><h3>Customer unsubscribed</h3><p>This customer asked not to receive promotions, so sending is disabled.</p></section>
+  if (!request.marketingConsent) return <section className="promotion-composer blocked"><p className="order-detail-label">Promotion emails</p><h3>Permission needed first</h3><p>Completed orders are not automatically added to marketing emails. Record consent only after the customer agrees.</p><button className="admin-secondary-button" type="button" disabled={sending} onClick={() => void recordConsent()}>{sending ? 'Saving…' : 'Record marketing permission'}</button>{error ? <p className="campaign-error">{error}</p> : null}</section>
+  if (!promotions.length) return <section className="promotion-composer blocked"><p className="order-detail-label">Promotion emails</p><h3>No active promotion yet</h3><p>Create or enable a promotion first, then return here to send it to this customer.</p></section>
+
+  return <section className="promotion-composer"><p className="order-detail-label">Promotion email</p><h3>Send a little celebration magic</h3><p>Choose a current offer and personalise the note for {request.customerName || 'this customer'}.</p><label>Active promotion<select value={promotionId} onChange={(event) => choosePromotion(event.target.value)}>{promotions.map((promotion) => <option key={promotion._id} value={promotion._id}>{promotion.title}</option>)}</select></label><label>Email subject<input value={subject} maxLength={160} onChange={(event) => setSubject(event.target.value)} /></label><label>Your message<textarea value={message} maxLength={5000} onChange={(event) => setMessage(event.target.value)} /></label><button className="admin-button" type="button" disabled={sending} onClick={() => void send()}>{sending ? 'Sending…' : 'Send promotion email'}</button>{error ? <p className="campaign-error">{error}</p> : null}</section>
+}
+
+function PromotionBroadcastDialog({ promotions, recipients, onClose, onSend }: { promotions: Promotion[]; recipients: number; onClose: () => void; onSend: (promotionId: string, subject: string, message: string) => Promise<void> }) {
+  const { confirm, notify } = useFeedback()
+  const activePromotions = promotions.filter((promotion) => promotion.enabled)
+  const [promotionId, setPromotionId] = useState(activePromotions[0]?._id || '')
+  const [subject, setSubject] = useState(activePromotions[0] ? promotionSubject(activePromotions[0]) : '')
+  const [message, setMessage] = useState(activePromotions[0] ? promotionMessage(activePromotions[0]) : '')
+  const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+
+  const choosePromotion = (nextPromotionId: string) => {
+    const promotion = activePromotions.find((item) => item._id === nextPromotionId)
+    setPromotionId(nextPromotionId)
+    if (promotion) {
+      setSubject(promotionSubject(promotion))
+      setMessage(promotionMessage(promotion))
+    }
+  }
+
+  const send = async () => {
+    if (!promotionId) return setError('Choose an active promotion first.')
+    if (!await confirm({ title: `Send to ${recipients} customer${recipients === 1 ? '' : 's'}?`, message: 'This sends the selected promotion only to completed customers who gave permission and have not unsubscribed.', confirmLabel: 'Send promotion', tone: 'info' })) return
+    setSending(true); setError(null)
+    try {
+      await onSend(promotionId, subject, message)
+      notify({ title: 'Promotion campaign sent', message: `Your offer was sent to ${recipients} eligible customer${recipients === 1 ? '' : 's'}.` })
+      onClose()
+    } catch (reason) { setError(messageFor(reason, 'Unable to send this promotion campaign.')) } finally { setSending(false) }
+  }
+
+  return <Dialog title="Send a promotion" onClose={onClose}><section className="promotion-composer broadcast"><p>{recipients} completed customer{recipients === 1 ? '' : 's'} with marketing permission will receive this email. Customers who unsubscribed are excluded automatically.</p>{activePromotions.length ? <><label>Active promotion<select value={promotionId} onChange={(event) => choosePromotion(event.target.value)}>{activePromotions.map((promotion) => <option key={promotion._id} value={promotion._id}>{promotion.title}</option>)}</select></label><label>Email subject<input value={subject} maxLength={160} onChange={(event) => setSubject(event.target.value)} /></label><label>Your message<textarea value={message} maxLength={5000} onChange={(event) => setMessage(event.target.value)} /></label><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={onClose}>Cancel</button><button className="admin-button" type="button" disabled={sending || !recipients} onClick={() => void send()}>{sending ? 'Sending…' : `Send to ${recipients} customer${recipients === 1 ? '' : 's'}`}</button></div></> : <p className="campaign-error">Create an active promotion before sending a campaign.</p>}{error ? <p className="campaign-error">{error}</p> : null}</section></Dialog>
+}
+
+export function AdminOrderHistoryPage() {
+  const token = useAdminToken()
+  const { confirm, notify } = useFeedback()
+  const [requests, setRequests] = useState<ServiceRequest[]>([])
+  const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null)
+  const [showBroadcast, setShowBroadcast] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const load = useCallback(() => Promise.all([api.adminServiceRequests(token, 'complete'), api.adminPromotions(token)]).then(([items, nextPromotions]) => { setRequests(items); setPromotions(nextPromotions); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load completed orders.'))), [token])
+  useEffect(() => { void load() }, [load])
+  const eligibleRecipients = useMemo(() => new Set(requests.filter((request) => request.marketingConsent && !request.marketingUnsubscribedAt && request.email).map((request) => request.email)).size, [requests])
+
+  const replaceRequest = (updatedRequest: ServiceRequest) => {
+    setRequests((current) => updatedRequest.status === 'complete' ? current.map((item) => item._id === updatedRequest._id ? updatedRequest : item) : current.filter((item) => item._id !== updatedRequest._id))
+    setSelectedRequest((current) => current?._id === updatedRequest._id ? (updatedRequest.status === 'complete' ? updatedRequest : null) : current)
+  }
+  const updateStatus = async (request: ServiceRequest, status: RequestStatus) => {
+    try {
+      const updatedRequest = await api.updateServiceRequestStatus(token, request._id, status)
+      replaceRequest(updatedRequest)
+      notify({ title: 'Order status updated', message: `${request.offeringName} is now marked ${status}.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to update order.')) }
+  }
+  const updateConsent = async (request: ServiceRequest, marketingConsent: boolean) => {
+    const updatedRequest = await api.updateMarketingConsent(token, request._id, marketingConsent)
+    replaceRequest(updatedRequest)
+  }
+  const sendOne = async (request: ServiceRequest, promotionId: string, subject: string, message: string) => { await api.sendPromotionEmail(token, request._id, { promotionId, subject, message }) }
+  const sendBroadcast = async (promotionId: string, subject: string, message: string) => { await api.sendPromotionBroadcast(token, { promotionId, subject, message }) }
+  const deleteRequest = async (request: ServiceRequest) => {
+    if (!await confirm({ title: 'Delete this completed order?', message: `${request.offeringName} for ${request.customerName} will be permanently deleted, including its campaign history.`, confirmLabel: 'Delete order' })) return
+    try {
+      await api.deleteServiceRequest(token, request._id)
+      setRequests((current) => current.filter((item) => item._id !== request._id))
+      setSelectedRequest(null)
+      notify({ title: 'Completed order deleted', message: `${request.offeringName} was removed from history.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to delete order.')) }
+  }
+
+  const campaign: PromotionCampaignActions = { promotions, onConsentChange: updateConsent, onSend: sendOne }
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Completed celebrations</p><h1>Order <em>history.</em></h1></div><button className="admin-button" type="button" disabled={!eligibleRecipients || !promotions.some((promotion) => promotion.enabled)} onClick={() => setShowBroadcast(true)}>Send a promotion</button></div><ErrorNotice error={error} /><div className="admin-history-note"><strong>{eligibleRecipients}</strong> customer{eligibleRecipients === 1 ? '' : 's'} can receive promotion emails. Only customers with recorded permission are included.</div><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><button className="request-admin-summary" type="button" onClick={() => setSelectedRequest(request)}><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b></p><small>{request.email}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small><span>View completed order →</span></button><div className="history-order-labels"><span className="request-status complete">complete</span><small className={request.marketingConsent && !request.marketingUnsubscribedAt ? 'marketing-ready' : ''}>{request.marketingUnsubscribedAt ? 'Unsubscribed' : request.marketingConsent ? 'Promotion ready' : 'No permission'}</small></div></article>)}</div> : <EmptyState>Completed orders will move here automatically when you mark them complete.</EmptyState>}</section>{selectedRequest ? <OrderDetailDialog request={selectedRequest} onClose={() => setSelectedRequest(null)} onStatusChange={(request, status) => void updateStatus(request, status)} onDelete={deleteRequest} campaign={campaign} /> : null}{showBroadcast ? <PromotionBroadcastDialog promotions={promotions} recipients={eligibleRecipients} onClose={() => setShowBroadcast(false)} onSend={sendBroadcast} /> : null}</section>
 }
 
 export function AdminMessagesPage() {

@@ -6,6 +6,7 @@ import { Offering } from '../models/Offering.js'
 import { Promotion } from '../models/Promotion.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
+import { verifyUnsubscribeToken } from '../services/email.js'
 
 const router = Router()
 const validTypes = new Set(['service', 'hire'])
@@ -64,6 +65,7 @@ router.post('/service-requests', async (req, res, next) => {
     const discountPercent = promotion?.discountPercent || 0
     const discountAmount = roundLkr(subtotal * discountPercent / 100)
     const totalPrice = Math.max(0, subtotal - discountAmount)
+    const marketingConsent = ['true', '1', 'on', 'yes'].includes(String(req.body.marketingConsent || '').toLowerCase())
     let request
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
@@ -86,6 +88,8 @@ router.post('/service-requests', async (req, res, next) => {
           totalPrice,
           promotion: promotion?._id,
           promotionTitle: promotion?.title || '',
+          marketingConsent,
+          marketingConsentAt: marketingConsent ? new Date() : undefined,
         })
         break
       } catch (error) {
@@ -105,6 +109,17 @@ router.get('/service-requests', async (req, res, next) => {
       .sort({ createdAt: -1 })
     return res.json(requests)
   } catch (error) { return next(error) }
+})
+
+router.get('/marketing/unsubscribe', async (req, res) => {
+  try {
+    const token = String(req.query.token || '')
+    const { email } = verifyUnsubscribeToken(token)
+    await ServiceRequest.updateMany({ email: email.toLowerCase() }, { marketingConsent: false, marketingConsentAt: undefined, marketingUnsubscribedAt: new Date() })
+    return res.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribed | Cotton Candy</title></head><body style="background:#f4f0ea;color:#38382f;font-family:Arial,sans-serif;margin:0;padding:48px 18px;text-align:center"><main style="background:#fffdfa;margin:auto;max-width:480px;padding:42px 30px"><p style="color:#ae6965;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase">Cotton Candy Event Deco</p><h1 style="font-family:Georgia,serif;font-size:36px;font-weight:normal;margin:16px 0">You’re all set.</h1><p style="color:#6f6d63;line-height:1.6">You will no longer receive promotion emails from us. Order updates are not affected.</p></main></body></html>')
+  } catch {
+    return res.status(400).type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Link unavailable</title></head><body><p>This unsubscribe link is invalid or has expired.</p></body></html>')
+  }
 })
 
 router.get('/media', async (req, res, next) => {

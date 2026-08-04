@@ -4,11 +4,13 @@ import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
 import { Offering } from '../models/Offering.js'
 import { Promotion } from '../models/Promotion.js'
+import { PromotionEmail } from '../models/PromotionEmail.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { upload } from '../middleware/upload.js'
 import { removeAsset, uploadAsset } from '../services/cloudinary.js'
+import { sendActivationEmail, sendPromotionEmail } from '../services/email.js'
 
 const router = Router()
 const validTypes = new Set(['service', 'hire'])
@@ -24,6 +26,15 @@ function booleanValue(value: unknown, fallback = false) {
   if (typeof value === 'boolean') return value
   if (typeof value !== 'string') return fallback
   return ['true', '1', 'on', 'yes'].includes(value.toLowerCase())
+}
+
+function campaignContent(body: Record<string, unknown>) {
+  const subject = String(body.subject || '').trim()
+  const message = String(body.message || '').trim()
+  if (!subject || !message) throw new Error('Add both an email subject and message.')
+  if (subject.length > 160) throw new Error('Keep the email subject under 160 characters.')
+  if (message.length > 5000) throw new Error('Keep the email message under 5,000 characters.')
+  return { subject, message }
 }
 
 function youtubeEmbedUrl(value: string) {
@@ -186,10 +197,69 @@ router.patch('/service-requests/:requestId/status', async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
+router.patch('/service-requests/:requestId/marketing-consent', async (req, res, next) => {
+  try {
+    const marketingConsent = booleanValue(req.body.marketingConsent)
+    const request = await ServiceRequest.findByIdAndUpdate(req.params.requestId, { marketingConsent, marketingConsentAt: marketingConsent ? new Date() : undefined }, { new: true })
+    if (!request) return res.status(404).json({ message: 'Request not found.' })
+    return res.json(request)
+  } catch (error) { return next(error) }
+})
+
+router.post('/service-requests/:requestId/activation-email', async (req, res, next) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.requestId)
+    if (!request) return res.status(404).json({ message: 'Request not found.' })
+    if (request.status !== 'active') return res.status(400).json({ message: 'Mark this order active before sending the booking email.' })
+    const resendEmailId = await sendActivationEmail({ customerName: request.customerName, email: request.email, trackingId: request.trackingId, offeringName: request.offeringName, type: request.type, hireDays: request.hireDays, totalPrice: request.totalPrice, eventDate: request.eventDate || undefined })
+    return res.status(201).json({ message: 'Booking activation email sent.', resendEmailId })
+  } catch (error) { return next(error) }
+})
+
+router.post('/service-requests/:requestId/promotion-email', async (req, res, next) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.requestId)
+    if (!request) return res.status(404).json({ message: 'Request not found.' })
+    if (request.status !== 'complete') return res.status(400).json({ message: 'Promotion emails can only be sent from completed orders.' })
+    if (!request.marketingConsent || request.marketingUnsubscribedAt) return res.status(400).json({ message: 'This customer has not given permission to receive promotion emails.' })
+    const promotion = await Promotion.findOne({ _id: String(req.body.promotionId || ''), enabled: true })
+    if (!promotion) return res.status(404).json({ message: 'Choose an active promotion.' })
+    const { subject, message } = campaignContent(req.body)
+    const resendEmailId = await sendPromotionEmail({ customerName: request.customerName, email: request.email, promotionTitle: promotion.title, promotionDescription: promotion.description, promotionImageUrl: promotion.desktopImageUrl, subject, message, requestId: request._id.toString() })
+    await PromotionEmail.create({ request: request._id, promotion: promotion._id, recipientEmail: request.email, subject, message, resendEmailId })
+    return res.status(201).json({ message: 'Promotion email sent.', sent: 1 })
+  } catch (error) { return next(error) }
+})
+
+router.post('/promotion-emails/broadcast', async (req, res, next) => {
+  try {
+    const promotion = await Promotion.findOne({ _id: String(req.body.promotionId || ''), enabled: true })
+    if (!promotion) return res.status(404).json({ message: 'Choose an active promotion.' })
+    const { subject, message } = campaignContent(req.body)
+    const completedRequests = await ServiceRequest.find({ status: 'complete', marketingConsent: true, marketingUnsubscribedAt: { $exists: false } }).sort({ createdAt: -1 })
+    const recipients = [...new Map(completedRequests.map((request) => [request.email, request])).values()]
+    const failures: string[] = []
+    let sent = 0
+    for (const request of recipients) {
+      try {
+        const resendEmailId = await sendPromotionEmail({ customerName: request.customerName, email: request.email, promotionTitle: promotion.title, promotionDescription: promotion.description, promotionImageUrl: promotion.desktopImageUrl, subject, message, requestId: request._id.toString() })
+        await PromotionEmail.create({ request: request._id, promotion: promotion._id, recipientEmail: request.email, subject, message, resendEmailId })
+        sent += 1
+      } catch (error) {
+        failures.push(request.email)
+        console.error(`Promotion email failed for ${request.email}`, error)
+      }
+    }
+    return res.json({ message: sent ? `Promotion email sent to ${sent} customer${sent === 1 ? '' : 's'}.` : 'No eligible completed customers were found.', sent, failed: failures.length })
+  } catch (error) { return next(error) }
+})
+
 router.delete('/service-requests/:requestId', async (req, res, next) => {
   try {
-    const request = await ServiceRequest.findByIdAndDelete(req.params.requestId)
+    const request = await ServiceRequest.findById(req.params.requestId)
     if (!request) return res.status(404).json({ message: 'Request not found.' })
+    await PromotionEmail.deleteMany({ request: request._id })
+    await request.deleteOne()
     return res.status(204).send()
   } catch (error) { return next(error) }
 })

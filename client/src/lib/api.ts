@@ -24,7 +24,7 @@ export type CollectionType = 'service' | 'hire'
 export type RequestStatus = 'pending' | 'active' | 'complete' | 'cancel'
 export type Category = { _id: string; name: string; slug: string; type: CollectionType; description?: string; active: boolean }
 export type Offering = { _id: string; name: string; type: CollectionType; category: Category | string; description: string; price: number; availability: 'available' | 'limited' | 'unavailable'; imageUrl: string; featured: boolean; active: boolean }
-export type ServiceRequest = { _id: string; trackingId?: string; type: CollectionType; offeringName: string; customerName?: string; email?: string; phone?: string; eventType?: string; eventDate?: string; notes?: string; status: RequestStatus; hireDays: number; unitPrice: number; subtotal: number; discountPercent: number; discountAmount: number; totalPrice: number; promotionTitle?: string; createdAt: string }
+export type ServiceRequest = { _id: string; trackingId?: string; type: CollectionType; offeringName: string; customerName?: string; email?: string; phone?: string; eventType?: string; eventDate?: string; notes?: string; status: RequestStatus; hireDays: number; unitPrice: number; subtotal: number; discountPercent: number; discountAmount: number; totalPrice: number; promotionTitle?: string; marketingConsent?: boolean; marketingUnsubscribedAt?: string; createdAt: string }
 export type ContactMessage = { _id: string; name: string; email: string; phone?: string; eventType?: string; eventDate?: string; message: string; createdAt: string; read: boolean }
 export type MediaAsset = { _id: string; title: string; kind: 'image' | 'video'; category: string; url: string; source?: 'upload' | 'youtube'; createdAt: string }
 export type Promotion = { _id: string; title: string; description: string; desktopImageUrl: string; mobileImageUrl: string; discountPercent: number; appliesTo: 'all' | CollectionType; enabled: boolean; showOnLoad: boolean; createdAt: string }
@@ -32,6 +32,7 @@ export type HomeContent = { _id: string; heroMainUrl: string; heroSmallUrl: stri
 export type AdminDashboard = { totals: { requests: number; pending: number; unreadMessages: number; media: number }; requests: ServiceRequest[]; messages: ContactMessage[]; offerings: Offering[]; promotions: Promotion[] }
 export type AuthUser = { id: string; name: string; email: string; role: 'admin' }
 export type AuthResponse = { token: string; user: AuthUser }
+export type PromotionEmailResult = { message: string; sent: number; failed?: number }
 
 export const api = {
   categories: (type?: CollectionType) => request<Category[]>(`/categories${type ? `?type=${type}` : ''}`),
@@ -56,6 +57,10 @@ export const api = {
   deleteOffering: (token: string, offeringId: string) => request<void>(`/admin/offerings/${offeringId}`, { method: 'DELETE', token }),
   adminServiceRequests: (token: string, status?: RequestStatus) => request<ServiceRequest[]>(`/admin/service-requests${status ? `?status=${status}` : ''}`, { token }),
   updateServiceRequestStatus: (token: string, requestId: string, status: RequestStatus) => request<ServiceRequest>(`/admin/service-requests/${requestId}/status`, { method: 'PATCH', body: { status }, token }),
+  sendActivationEmail: (token: string, requestId: string) => request<{ message: string }>(`/admin/service-requests/${requestId}/activation-email`, { method: 'POST', token }),
+  updateMarketingConsent: (token: string, requestId: string, marketingConsent: boolean) => request<ServiceRequest>(`/admin/service-requests/${requestId}/marketing-consent`, { method: 'PATCH', body: { marketingConsent }, token }),
+  sendPromotionEmail: (token: string, requestId: string, body: { promotionId: string; subject: string; message: string }) => request<PromotionEmailResult>(`/admin/service-requests/${requestId}/promotion-email`, { method: 'POST', body, token }),
+  sendPromotionBroadcast: (token: string, body: { promotionId: string; subject: string; message: string }) => request<PromotionEmailResult>('/admin/promotion-emails/broadcast', { method: 'POST', body, token }),
   deleteServiceRequest: (token: string, requestId: string) => request<void>(`/admin/service-requests/${requestId}`, { method: 'DELETE', token }),
   adminMessages: (token: string) => request<ContactMessage[]>('/admin/messages', { token }),
   markMessageRead: (token: string, messageId: string, read: boolean) => request<ContactMessage>(`/admin/messages/${messageId}/read`, { method: 'PATCH', body: { read }, token }),

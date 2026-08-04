@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useEffect } from 'react'
-import { AdminCategoriesPage, AdminCollectionPage, AdminHomeContentPage, AdminMediaPage, AdminMessagesPage, AdminPage, AdminPromotionsPage, AdminRequestsPage } from './pages/AdminPage'
+import { AdminCategoriesPage, AdminCollectionPage, AdminHomeContentPage, AdminMediaPage, AdminMessagesPage, AdminOrderHistoryPage, AdminPage, AdminPromotionsPage, AdminRequestsPage } from './pages/AdminPage'
 import { AdminLoginPage } from './pages/AdminLoginPage'
 import { AboutPage, ContactPage, GalleryPage, HireCollectionPage, HomePage, OfferingDetailsPage, PromotionsPage, ServicesCollectionPage, ServicesHirePage } from './pages/PublicPages'
 import { AdminLayout } from './components/AdminLayout'
@@ -17,6 +17,7 @@ export default function App() {
         <Route path="hire" element={<AdminCollectionPage type="hire" />} />
         <Route path="categories" element={<AdminCategoriesPage />} />
         <Route path="requests" element={<AdminRequestsPage />} />
+        <Route path="order-history" element={<AdminOrderHistoryPage />} />
         <Route path="messages" element={<AdminMessagesPage />} />
         <Route path="gallery/images" element={<AdminMediaPage kind="image" />} />
         <Route path="gallery/videos" element={<AdminMediaPage kind="video" />} />

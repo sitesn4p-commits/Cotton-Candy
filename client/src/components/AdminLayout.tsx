@@ -4,7 +4,7 @@ import { useAuth } from '../lib/useAuth'
 
 const adminLinks = [
   ['', 'Overview', '⌂'], ['services', 'Services', '✦'], ['hire', 'Hire collection', '◇'], ['categories', 'Categories', '▦'],
-  ['requests', 'Service requests', '◫'], ['messages', 'Contact messages', '✉'], ['gallery/images', 'Gallery images', '▧'],
+  ['requests', 'Service requests', '◫'], ['order-history', 'Order history', '◷'], ['messages', 'Contact messages', '✉'], ['gallery/images', 'Gallery images', '▧'],
   ['gallery/videos', 'Gallery videos', '▶'], ['promotions', 'Promotions', '♡'], ['home-content', 'Home content', '◌'],
 ] as const
 

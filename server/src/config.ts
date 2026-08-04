@@ -14,8 +14,12 @@ export const env = {
   mongoUri: process.env.MONGODB_URI || '',
   clientUrls,
   serverUrl: process.env.SERVER_URL || `http://localhost:${port}`,
+  websiteUrl: (process.env.WEBSITE_URL || clientUrls[0] || '').replace(/\/$/, ''),
   cloudinaryUrl: process.env.CLOUDINARY_URL || '',
   jwtSecret: process.env.JWT_SECRET || '',
   adminEmail: (process.env.ADMIN_EMAIL || '').trim().toLowerCase(),
   adminPassword: process.env.ADMIN_PASSWORD || '',
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  emailFrom: process.env.EMAIL_FROM || '',
+  emailReplyTo: process.env.EMAIL_REPLY_TO || '',
 }

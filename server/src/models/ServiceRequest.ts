@@ -20,6 +20,9 @@ const serviceRequestSchema = new Schema({
   totalPrice: { type: Number, required: true, min: 0 },
   promotion: { type: Schema.Types.ObjectId, ref: 'Promotion' },
   promotionTitle: { type: String, default: '', trim: true },
+  marketingConsent: { type: Boolean, default: false },
+  marketingConsentAt: { type: Date },
+  marketingUnsubscribedAt: { type: Date },
 }, { timestamps: true })
 
 export const ServiceRequest = model('ServiceRequest', serviceRequestSchema)
