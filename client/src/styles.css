@@ -38,7 +38,7 @@ html, body { max-width: 100%; overflow-x: clip; }
 .hero-balloon-peach { --balloon-colour: #edae89; }
 .site-header .brand, .site-footer .footer-brand .brand { height: 78px; margin: 0; position: relative; width: 78px; }
 .site-header .brand > *, .site-footer .footer-brand .brand > * { display: none; }
-.site-header .brand:before, .site-footer .footer-brand .brand:before { animation: logo-float 4.8s ease-in-out infinite; background: url('/cotton-candy-logo.jpg') center/contain no-repeat; content: ''; height: 100%; inset: 0; mix-blend-mode: multiply; position: absolute; transition: filter .25s, transform .25s; width: 100%; }
+.site-header .brand:before, .site-footer .footer-brand .brand:before { animation: logo-float 4.8s ease-in-out infinite; background: url('/cotton-candy-logo.png') center/contain no-repeat; content: ''; height: 100%; inset: 0; mix-blend-mode: multiply; position: absolute; transition: filter .25s, transform .25s; width: 100%; }
 .site-footer .footer-brand .brand { height: 112px; margin-bottom: 14px; width: 112px; }
 .site-footer .footer-brand .brand:before { animation-delay: -1.4s; }
 .site-header .brand:hover:before, .site-footer .footer-brand .brand:hover:before { animation-duration: 1.8s; filter: brightness(1.08) saturate(1.18) drop-shadow(0 7px 7px rgba(228,120,148,.22)); }
