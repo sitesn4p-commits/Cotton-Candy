@@ -1,4 +1,5 @@
 import { useEffect, useState, type PointerEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { api, type Promotion } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
@@ -18,8 +19,13 @@ export function SiteLayout() {
   }
   return <div className="app-root" onPointerDown={bloom}>
     <div className="site-loader" aria-label="Loading Cotton Candy"><div className="loader-orbit loader-orbit-one" /><div className="loader-orbit loader-orbit-two" /><span className="loader-mark">CC</span><p>Making it pretty…</p></div>
-    <header className="site-header"><div className="container nav-wrap"><NavLink className="brand" to="/" onClick={closeMenu} aria-label="Cotton Candy home"><span className="brand-mark">C</span><span>Cotton<br /><em>Candy</em></span></NavLink>{open ? <button className="mobile-nav-backdrop" type="button" aria-label="Close navigation" onClick={closeMenu} /> : null}<button className="mobile-menu-button" type="button" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} onClick={() => setOpen((value) => !value)}><span /><span /></button><nav className={`site-nav${open ? ' open' : ''}`} aria-label="Main navigation"><NavLink to="/" end onClick={closeMenu}>Home</NavLink><NavLink to="/about" onClick={closeMenu}>About</NavLink><NavDropdown label="Bookings" to="/services-hire" closeMenu={closeMenu} items={[['/services', 'Services'], ['/hire', 'Hire collection']]} /><NavLink to="/promotions" onClick={closeMenu}>Promotions</NavLink><NavDropdown label="Gallery" to="/gallery/images" closeMenu={closeMenu} items={[['/gallery/images', 'Images'], ['/gallery/videos', 'Videos']]} /><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></nav></div></header>
+    <header className="site-header"><div className="container nav-wrap"><NavLink className="brand" to="/" onClick={closeMenu} aria-label="Cotton Candy home"><span className="brand-mark">C</span><span>Cotton<br /><em>Candy</em></span></NavLink><button className="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(true)}><span /><span /></button><nav className="site-nav site-nav-desktop" aria-label="Main navigation"><NavigationLinks closeMenu={closeMenu} /></nav></div></header>
+    {open ? createPortal(<div className="mobile-nav-layer"><button className="mobile-nav-backdrop" type="button" aria-label="Close navigation" onClick={closeMenu} /><nav className="site-nav site-nav-mobile open" aria-label="Mobile navigation"><button className="mobile-drawer-close" type="button" aria-label="Close navigation" onClick={closeMenu}>×</button><NavigationLinks closeMenu={closeMenu} /></nav></div>, document.body) : null}
     <main className="site-main"><Outlet /></main><SiteMotionEffects /><SiteFooter /><PromotionOverlay /><ScrollTopButton />{blooms.map((item) => <span className="click-bloom" key={item.id} style={{ left: item.x, top: item.y }} aria-hidden="true">✿</span>)}</div>
+}
+
+function NavigationLinks({ closeMenu }: { closeMenu: () => void }) {
+  return <><NavLink to="/" end onClick={closeMenu}>Home</NavLink><NavLink to="/about" onClick={closeMenu}>About</NavLink><NavDropdown label="Bookings" to="/services-hire" closeMenu={closeMenu} items={[['/services', 'Services'], ['/hire', 'Hire collection']]} /><NavLink to="/promotions" onClick={closeMenu}>Promotions</NavLink><NavDropdown label="Gallery" to="/gallery/images" closeMenu={closeMenu} items={[['/gallery/images', 'Images'], ['/gallery/videos', 'Videos']]} /><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></>
 }
 
 function SiteMotionEffects() {
