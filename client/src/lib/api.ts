@@ -1,0 +1,71 @@
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+type ApiOptions = Omit<RequestInit, 'body'> & { body?: BodyInit | Record<string, unknown>; token?: string }
+
+async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
+  const { token, body, headers, ...init } = options
+  const isFormData = body instanceof FormData
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...init,
+    body: body && !isFormData ? JSON.stringify(body) : body,
+    headers: {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+  })
+  if (response.status === 204) return undefined as T
+  const payload = await response.json().catch(() => ({ message: 'The server returned an unexpected response.' })) as T & { message?: string }
+  if (!response.ok) throw new Error(payload.message || 'Something went wrong. Please try again.')
+  return payload
+}
+
+export type CollectionType = 'service' | 'hire'
+export type RequestStatus = 'pending' | 'active' | 'complete' | 'cancel'
+export type Category = { _id: string; name: string; slug: string; type: CollectionType; description?: string; active: boolean }
+export type Offering = { _id: string; name: string; type: CollectionType; category: Category | string; description: string; price: number; availability: 'available' | 'limited' | 'unavailable'; imageUrl: string; featured: boolean; active: boolean }
+export type ServiceRequest = { _id: string; trackingId?: string; type: CollectionType; offeringName: string; customerName?: string; email?: string; phone?: string; eventType?: string; eventDate?: string; notes?: string; status: RequestStatus; hireDays: number; unitPrice: number; subtotal: number; discountPercent: number; discountAmount: number; totalPrice: number; promotionTitle?: string; createdAt: string }
+export type ContactMessage = { _id: string; name: string; email: string; phone?: string; eventType?: string; eventDate?: string; message: string; createdAt: string; read: boolean }
+export type MediaAsset = { _id: string; title: string; kind: 'image' | 'video'; category: string; url: string; source?: 'upload' | 'youtube'; createdAt: string }
+export type Promotion = { _id: string; title: string; description: string; desktopImageUrl: string; mobileImageUrl: string; discountPercent: number; appliesTo: 'all' | CollectionType; enabled: boolean; showOnLoad: boolean; createdAt: string }
+export type HomeContent = { _id: string; heroMainUrl: string; heroSmallUrl: string }
+export type AdminDashboard = { totals: { requests: number; pending: number; unreadMessages: number; media: number }; requests: ServiceRequest[]; messages: ContactMessage[]; offerings: Offering[]; promotions: Promotion[] }
+export type AuthUser = { id: string; name: string; email: string; role: 'admin' }
+export type AuthResponse = { token: string; user: AuthUser }
+
+export const api = {
+  categories: (type?: CollectionType) => request<Category[]>(`/categories${type ? `?type=${type}` : ''}`),
+  offerings: (type?: CollectionType, category?: string) => request<Offering[]>(`/offerings?${new URLSearchParams({ ...(type ? { type } : {}), ...(category ? { category } : {}) })}`),
+  offering: (offeringId: string) => request<Offering>(`/offerings/${offeringId}`),
+  createServiceRequest: (body: Record<string, unknown>) => request<{ message: string; request: ServiceRequest }>('/service-requests', { method: 'POST', body }),
+  ordersByEmail: (email: string) => request<ServiceRequest[]>(`/service-requests?email=${encodeURIComponent(email)}`),
+  media: (kind?: 'image' | 'video') => request<MediaAsset[]>(`/media${kind ? `?kind=${kind}` : ''}`),
+  promotions: () => request<Promotion[]>('/promotions'),
+  featuredPromotion: () => request<Promotion | null>('/promotions/featured'),
+  homeContent: () => request<HomeContent>('/home-content'),
+  sendEnquiry: (body: Record<string, unknown>) => request<{ message: string }>('/contact', { method: 'POST', body }),
+  signInAsAdmin: (email: string, password: string) => request<AuthResponse>('/auth/admin-login', { method: 'POST', body: { email, password } }),
+  dashboard: (token: string) => request<AdminDashboard>('/admin/dashboard', { token }),
+  adminCategories: (token: string, type?: CollectionType) => request<Category[]>(`/admin/categories${type ? `?type=${type}` : ''}`, { token }),
+  createCategory: (token: string, body: Record<string, unknown>) => request<Category>('/admin/categories', { method: 'POST', body, token }),
+  updateCategory: (token: string, categoryId: string, body: Record<string, unknown>) => request<Category>(`/admin/categories/${categoryId}`, { method: 'PATCH', body, token }),
+  deleteCategory: (token: string, categoryId: string) => request<void>(`/admin/categories/${categoryId}`, { method: 'DELETE', token }),
+  adminOfferings: (token: string, type?: CollectionType) => request<Offering[]>(`/admin/offerings${type ? `?type=${type}` : ''}`, { token }),
+  createOffering: (token: string, form: FormData) => request<Offering>('/admin/offerings', { method: 'POST', body: form, token }),
+  updateOffering: (token: string, offeringId: string, form: FormData) => request<Offering>(`/admin/offerings/${offeringId}`, { method: 'PATCH', body: form, token }),
+  deleteOffering: (token: string, offeringId: string) => request<void>(`/admin/offerings/${offeringId}`, { method: 'DELETE', token }),
+  adminServiceRequests: (token: string, status?: RequestStatus) => request<ServiceRequest[]>(`/admin/service-requests${status ? `?status=${status}` : ''}`, { token }),
+  updateServiceRequestStatus: (token: string, requestId: string, status: RequestStatus) => request<ServiceRequest>(`/admin/service-requests/${requestId}/status`, { method: 'PATCH', body: { status }, token }),
+  deleteServiceRequest: (token: string, requestId: string) => request<void>(`/admin/service-requests/${requestId}`, { method: 'DELETE', token }),
+  adminMessages: (token: string) => request<ContactMessage[]>('/admin/messages', { token }),
+  markMessageRead: (token: string, messageId: string, read: boolean) => request<ContactMessage>(`/admin/messages/${messageId}/read`, { method: 'PATCH', body: { read }, token }),
+  adminMedia: (token: string, kind?: 'image' | 'video') => request<MediaAsset[]>(`/admin/media${kind ? `?kind=${kind}` : ''}`, { token }),
+  createMedia: (token: string, form: FormData) => request<MediaAsset>('/admin/media', { method: 'POST', body: form, token }),
+  deleteMedia: (token: string, mediaId: string) => request<void>(`/admin/media/${mediaId}`, { method: 'DELETE', token }),
+  adminPromotions: (token: string) => request<Promotion[]>('/admin/promotions', { token }),
+  createPromotion: (token: string, form: FormData) => request<Promotion>('/admin/promotions', { method: 'POST', body: form, token }),
+  updatePromotion: (token: string, promotionId: string, form: FormData) => request<Promotion>(`/admin/promotions/${promotionId}`, { method: 'PATCH', body: form, token }),
+  deletePromotion: (token: string, promotionId: string) => request<void>(`/admin/promotions/${promotionId}`, { method: 'DELETE', token }),
+  adminHomeContent: (token: string) => request<HomeContent>('/admin/home-content', { token }),
+  updateHomeContent: (token: string, form: FormData) => request<HomeContent>('/admin/home-content', { method: 'PATCH', body: form, token }),
+}
