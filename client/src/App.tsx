@@ -7,25 +7,9 @@ import { AdminLayout } from './components/AdminLayout'
 import { ProtectedAdmin, SiteLayout } from './components/SiteLayout'
 
 export default function App() {
-  useEffect(() => { document.body.classList.add('loaded') }, [])
-  return (
-    <Routes>
-      <Route element={<SiteLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="about" element={<AboutPage />} />
-        <Route path="services-hire" element={<ServicesHirePage />} />
-        <Route path="services" element={<ServicesCollectionPage />} />
-        <Route path="services/:offeringId" element={<OfferingDetailsPage type="service" />} />
-        <Route path="hire" element={<HireCollectionPage />} />
-        <Route path="hire/:offeringId" element={<OfferingDetailsPage type="hire" />} />
-        <Route path="promotions" element={<PromotionsPage />} />
-        <Route path="gallery" element={<Navigate to="/gallery/images" replace />} />
-        <Route path="gallery/images" element={<GalleryPage kind="image" />} />
-        <Route path="gallery/videos" element={<GalleryPage kind="video" />} />
-        <Route path="contact" element={<ContactPage />} />
-        <Route path="store" element={<Navigate to="/hire" replace />} />
-        <Route path="store/:offeringId" element={<Navigate to="/hire" replace />} />
-      </Route>
+  const isAdminBuild = import.meta.env.VITE_APP_MODE === 'admin'
+  const adminRoutes = (
+    <>
       <Route path="manage-cotton-candy/sign-in" element={<AdminLoginPage />} />
       <Route path="manage-cotton-candy" element={<ProtectedAdmin><AdminLayout /></ProtectedAdmin>}>
         <Route index element={<AdminPage />} />
@@ -39,7 +23,32 @@ export default function App() {
         <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="home-content" element={<AdminHomeContentPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+    </>
+  )
+
+  useEffect(() => { document.body.classList.add('loaded') }, [])
+  return (
+    <Routes>
+      {!isAdminBuild && (
+        <Route element={<SiteLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="services-hire" element={<ServicesHirePage />} />
+          <Route path="services" element={<ServicesCollectionPage />} />
+          <Route path="services/:offeringId" element={<OfferingDetailsPage type="service" />} />
+          <Route path="hire" element={<HireCollectionPage />} />
+          <Route path="hire/:offeringId" element={<OfferingDetailsPage type="hire" />} />
+          <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="gallery" element={<Navigate to="/gallery/images" replace />} />
+          <Route path="gallery/images" element={<GalleryPage kind="image" />} />
+          <Route path="gallery/videos" element={<GalleryPage kind="video" />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="store" element={<Navigate to="/hire" replace />} />
+          <Route path="store/:offeringId" element={<Navigate to="/hire" replace />} />
+        </Route>
+      )}
+      {adminRoutes}
+      <Route path="*" element={<Navigate to={isAdminBuild ? '/manage-cotton-candy' : '/'} replace />} />
     </Routes>
   )
 }

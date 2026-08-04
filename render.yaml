@@ -41,3 +41,21 @@ services:
         value: 22
       - key: VITE_API_URL
         sync: false
+
+  - type: web
+    runtime: static
+    name: cotton-candy-event-deco-admin
+    buildCommand: npm ci && npm run build --workspace client
+    staticPublishPath: client/dist
+    autoDeployTrigger: commit
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_APP_MODE
+        value: admin
