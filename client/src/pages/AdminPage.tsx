@@ -117,25 +117,58 @@ export function AdminRequestsPage() {
   const token = useAdminToken()
   const { confirm, notify } = useFeedback()
   const [requests, setRequests] = useState<ServiceRequest[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null)
+  const [activationRequest, setActivationRequest] = useState<ServiceRequest | null>(null)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(() => api.adminServiceRequests(token).then((items) => { setRequests(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load requests.'))), [token])
   useEffect(() => { void load() }, [load])
+
   const changeStatus = async (request: ServiceRequest, status: RequestStatus) => {
     try {
-      await api.updateServiceRequestStatus(token, request._id, status)
-      await load()
+      const updatedRequest = await api.updateServiceRequestStatus(token, request._id, status)
+      setRequests((current) => current.map((item) => item._id === updatedRequest._id ? updatedRequest : item))
+      setSelectedRequest((current) => current?._id === updatedRequest._id ? updatedRequest : current)
       notify({ title: 'Order status updated', message: `${request.offeringName} is now marked ${status}.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to update request.')) }
   }
+
+  const requestStatusChange = (request: ServiceRequest, status: RequestStatus) => {
+    if (status === 'active' && request.status !== 'active') {
+      setActivationRequest(request)
+      return
+    }
+    void changeStatus(request, status)
+  }
+
   const deleteRequest = async (request: ServiceRequest) => {
     if (!await confirm({ title: 'Delete this customer request?', message: `${request.offeringName} for ${request.customerName} will be permanently deleted. This cannot be undone.`, confirmLabel: 'Delete request' })) return
     try {
       await api.deleteServiceRequest(token, request._id)
-      await load()
+      setRequests((current) => current.filter((item) => item._id !== request._id))
+      setSelectedRequest((current) => current?._id === request._id ? null : current)
       notify({ title: 'Request deleted', message: `${request.offeringName} has been removed from your order list.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to delete request.')) }
   }
-  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Customer orders</p><h1>Service & hire <em>requests.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><div><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b>{request.type === 'hire' ? ` · ${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : ''}</p><small>{request.email}{request.promotionTitle ? ` · ${request.promotionTitle} (${request.discountPercent}% off)` : ''}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small></div><div className="request-admin-actions"><select className={`request-status ${request.status}`} value={request.status} onChange={(event) => void changeStatus(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><button type="button" onClick={() => void deleteRequest(request)}>Delete</button></div></article>)}</div> : <EmptyState>Customer service and hire requests will appear here.</EmptyState>}</section></section>
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Customer orders</p><h1>Service & hire <em>requests.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><button className="request-admin-summary" type="button" onClick={() => setSelectedRequest(request)}><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b>{request.type === 'hire' ? ` · ${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : ''}</p><small>{request.email}{request.promotionTitle ? ` · ${request.promotionTitle} (${request.discountPercent}% off)` : ''}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small><span>View full order →</span></button><div className="request-admin-actions"><select aria-label={`Change status for ${request.offeringName}`} className={`request-status ${request.status}`} value={request.status} onChange={(event) => requestStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><button type="button" onClick={() => void deleteRequest(request)}>Delete</button></div></article>)}</div> : <EmptyState>Customer service and hire requests will appear here.</EmptyState>}</section>{selectedRequest ? <OrderDetailDialog request={selectedRequest} onClose={() => setSelectedRequest(null)} onStatusChange={requestStatusChange} onDelete={deleteRequest} /> : null}{activationRequest ? <ActivationEmailDialog request={activationRequest} onClose={() => setActivationRequest(null)} onActivate={async () => { await changeStatus(activationRequest, 'active'); setActivationRequest(null) }} /> : null}</section>
+}
+
+function OrderDetailDialog({ request, onClose, onStatusChange, onDelete }: { request: ServiceRequest; onClose: () => void; onStatusChange: (request: ServiceRequest, status: RequestStatus) => void; onDelete: (request: ServiceRequest) => Promise<void> }) {
+  const eventDate = request.eventDate ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'long' }).format(new Date(request.eventDate)) : 'Not provided'
+  const submittedAt = new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt))
+  const itemLabel = request.type === 'hire' ? 'Hire item' : 'Service'
+
+  return <Dialog title="Order details" onClose={onClose}><div className="order-detail-topline"><div><p className="eyebrow">{request.trackingId || 'Customer request'}</p><h3>{request.offeringName}</h3></div><span className={`request-status ${request.status}`}>{request.status}</span></div><div className="order-detail-grid"><section><p className="order-detail-label">Customer</p><strong>{request.customerName || 'Customer'}</strong><a href={`mailto:${request.email}`}>{request.email || 'No email supplied'}</a>{request.phone ? <a href={`tel:${request.phone}`}>{request.phone}</a> : <small>No phone number supplied</small>}</section><section><p className="order-detail-label">Event</p><strong>{request.eventType || 'Celebration details to confirm'}</strong><span>{eventDate}</span><small>Submitted {submittedAt}</small></section><section><p className="order-detail-label">Booking</p><strong>{itemLabel}</strong><span>{request.type === 'hire' ? `${request.hireDays} hire day${request.hireDays === 1 ? '' : 's'}` : 'Tailored event service'}</span><small>Price per day/service: {formatLkr(request.unitPrice)}</small></section><section><p className="order-detail-label">Order status</p><select className={`request-status ${request.status}`} value={request.status} onChange={(event) => onStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><small>Update this as the booking progresses.</small></section></div>{request.notes ? <section className="order-detail-notes"><p className="order-detail-label">Customer notes</p><p>{request.notes}</p></section> : null}<section className="order-price-summary"><div><span>Subtotal</span><strong>{formatLkr(request.subtotal)}</strong></div>{request.discountAmount > 0 ? <div><span>{request.promotionTitle || 'Promotion'} {request.discountPercent ? `(${request.discountPercent}% off)` : ''}</span><strong>−{formatLkr(request.discountAmount)}</strong></div> : null}<div className="order-price-total"><span>Total booking value</span><strong>{formatLkr(request.totalPrice)}</strong></div></section><section className="order-email-preview"><div><span aria-hidden="true">✉</span><div><p className="order-detail-label">Activation email</p><h3>{request.status === 'active' ? 'Ready to notify the customer' : 'Sent when this order becomes active'}</h3><p>An elegant confirmation email will go to {request.email || 'the customer'} with the order details and active status.</p></div></div><button type="button" disabled>Email sending setup next</button></section><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={() => void onDelete(request)}>Delete order</button><button className="admin-button" type="button" onClick={onClose}>Done</button></div></Dialog>
+}
+
+function ActivationEmailDialog({ request, onClose, onActivate }: { request: ServiceRequest; onClose: () => void; onActivate: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false)
+
+  const activate = async () => {
+    setSaving(true)
+    try { await onActivate() } finally { setSaving(false) }
+  }
+
+  return <Dialog title="Make this order active?" onClose={onClose}><section className="activation-email-dialog"><span aria-hidden="true">✦</span><p>{request.customerName || 'This customer'} will see the booking as active when they search using {request.email || 'their email address'}.</p><div className="activation-email-preview"><p className="order-detail-label">Customer email notice</p><strong>“Your Cotton Candy booking is now active.”</strong><small>The send button will be enabled after the Resend email connection is added.</small><button type="button" disabled>Send activation email</button></div><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={onClose}>Keep pending</button><button className="admin-button" type="button" onClick={() => void activate()} disabled={saving}>{saving ? 'Activating…' : 'Activate without email'}</button></div></section></Dialog>
 }
 
 export function AdminMessagesPage() {
