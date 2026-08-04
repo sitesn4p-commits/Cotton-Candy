@@ -4,7 +4,7 @@ services:
     name: cotton-candy-event-deco-api
     region: singapore
     plan: free
-    buildCommand: npm ci && npm run build --workspace server
+    buildCommand: npm ci --include=dev && npm run build --workspace server
     startCommand: npm run start --workspace server
     healthCheckPath: /api/health
     autoDeployTrigger: commit
