@@ -485,6 +485,7 @@ body { background: var(--cream); }
 .gallery-image-button:hover img, .gallery-image-button:focus-visible img { transform: scale(1.04); }
 .gallery-image-button:hover:after, .gallery-image-button:focus-visible:after { opacity: 1; transform: translateY(0); }
 .gallery-image-button:focus-visible { outline: 3px solid var(--deep-rose); outline-offset: 4px; }
+.gallery-item figcaption { pointer-events: none; }
 .gallery-lightbox { align-items: center; background: rgba(31, 23, 28, .92); display: flex; inset: 0; justify-content: center; padding: 30px; position: fixed; z-index: 1200; }
 .gallery-lightbox-content { max-height: 100%; max-width: min(1120px, 100%); position: relative; }
 .gallery-lightbox-content img { box-shadow: 0 25px 75px rgba(0, 0, 0, .35); display: block; max-height: calc(100vh - 105px); max-width: 100%; object-fit: contain; }
