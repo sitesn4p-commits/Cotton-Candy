@@ -330,7 +330,7 @@ body { background: var(--cream); }
 .nav-dropdown.is-open .dropdown-mark { transform: rotate(180deg); }
 .nav-submenu { background: rgba(255,253,250,.98); border: 1px solid var(--line); box-shadow: var(--shadow); display: grid; left: -18px; min-width: 184px; opacity: 0; padding: 8px; pointer-events: none; position: absolute; top: 100%; transform: translateY(-4px); transition: opacity .2s, transform .2s; visibility: hidden; }
 .nav-dropdown.is-open .nav-submenu { opacity: 1; pointer-events: auto; transform: translateY(0); visibility: visible; }
-.nav-submenu a { align-items: center; display: flex; font-size: 11px; justify-content: space-between; padding: 11px 10px; }
+.nav-submenu a { align-items: center; display: flex; font-size: 11px; justify-content: space-between; letter-spacing: .7px; padding: 11px 10px; text-transform: uppercase; }
 .nav-submenu a:hover { background: var(--soft-pink); color: var(--deep-rose); }
 .nav-submenu a:after { display: none; }
 .click-bloom { animation: bloom-out .72s ease-out forwards; color: #d982a0; font: 33px/1 var(--serif); pointer-events: none; position: fixed; transform: translate(-50%, -50%); z-index: 1200; }
