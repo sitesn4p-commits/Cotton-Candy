@@ -1,8 +1,11 @@
 import 'dotenv/config'
 
 const port = Number(process.env.PORT || 5000)
-const clientUrls = (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
+const clientUrls = [
+  process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173',
+  process.env.ADMIN_CLIENT_URL || '',
+]
+  .flatMap((urls) => urls.split(','))
   .map((url) => url.trim())
   .filter(Boolean)
 
