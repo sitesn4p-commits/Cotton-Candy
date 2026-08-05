@@ -10,7 +10,27 @@ export function SiteLayout() {
   const [open, setOpen] = useState(false)
   const [blooms, setBlooms] = useState<Bloom[]>([])
   useEffect(() => { document.body.classList.add('loaded') }, [])
-  useEffect(() => { document.body.classList.toggle('menu-open', open); return () => document.body.classList.remove('menu-open') }, [open])
+  useEffect(() => {
+    const { body } = document
+    body.classList.toggle('menu-open', open)
+    if (!open) return
+
+    const scrollY = window.scrollY
+    const previousStyle = { overflow: body.style.overflow, position: body.style.position, top: body.style.top, width: body.style.width }
+    body.style.overflow = 'hidden'
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+
+    return () => {
+      body.classList.remove('menu-open')
+      body.style.overflow = previousStyle.overflow
+      body.style.position = previousStyle.position
+      body.style.top = previousStyle.top
+      body.style.width = previousStyle.width
+      window.scrollTo(0, scrollY)
+    }
+  }, [open])
   const closeMenu = () => setOpen(false)
   const bloom = (event: PointerEvent<HTMLDivElement>) => {
     const id = Date.now() + Math.random()
