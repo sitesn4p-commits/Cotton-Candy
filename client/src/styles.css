@@ -43,6 +43,11 @@ html, body { max-width: 100%; overflow-x: clip; }
 .site-footer .footer-brand .brand:before { animation-delay: -1.4s; }
 .site-header .brand:hover:before, .site-footer .footer-brand .brand:hover:before { animation-duration: 1.8s; filter: brightness(1.08) saturate(1.18) drop-shadow(0 7px 7px rgba(228,120,148,.22)); }
 @keyframes logo-float { 0%, 100% { transform: translateY(0) rotate(-1.5deg) scale(1); } 50% { transform: translateY(-4px) rotate(1.5deg) scale(1.035); } }
+.header-phone { align-items: center; color: var(--deep-rose); display: inline-flex; font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 11px 0; position: relative; text-decoration: none; white-space: nowrap; }
+.header-phone:before { color: var(--muted); content: 'Call us'; font-size: 8px; left: 0; letter-spacing: 1.3px; position: absolute; text-transform: uppercase; top: -1px; }
+.header-phone:hover { color: var(--sage); }
+.mobile-nav-phone { align-items: center; background: var(--ink); color: var(--cream) !important; display: flex; font-size: 11px !important; font-weight: 700; justify-content: space-between; letter-spacing: .7px; margin-top: 20px; padding: 15px 16px !important; text-transform: uppercase; }
+.mobile-nav-phone:after { display: none; }
 .mobile-nav-layer, .mobile-drawer-close { display: none; }
 .intro-copy { background: #fffafa; box-shadow: 18px 20px 0 #f2d8de, 0 20px 48px rgba(89,53,66,.13); max-width: 530px; padding: 66px 52px 49px; position: relative; z-index: 1; }
 .intro-copy > * { position: relative; z-index: 1; }
@@ -101,7 +106,7 @@ html, body { max-width: 100%; overflow-x: clip; }
   .brand-mark { font-size: 17px; height: 34px; margin-right: 7px; width: 34px; }
   .nav-actions { gap: 5px; }
   .login-link { border: 1px solid var(--line); border-radius: 24px; padding: 7px 10px; }
-  .site-nav-desktop { display: none; }
+  .site-nav-desktop, .header-phone { display: none; }
   .mobile-nav-layer { display: block; inset: 0; position: fixed; z-index: 1500; }
   .mobile-nav-backdrop { background: rgba(46, 39, 34, .42); border: 0; display: block; inset: 0; opacity: 1; padding: 0; position: absolute; }
   .mobile-menu-button { background: var(--soft-pink); border-radius: 50%; height: 36px; padding: 5px; position: relative; width: 36px; z-index: 111; }
@@ -219,14 +224,14 @@ html, body { max-width: 100%; overflow-x: clip; }
   .product-card .quick-add { font-size: 9px; padding: 8px; }
 }
 /* Public collections, promotion and interaction layer */
-.services-preview { background-color: #e8dfc8; background-image: radial-gradient(ellipse 90% 78% at 2% -18%, rgba(255, 254, 246, .96) 0 19%, rgba(255, 253, 244, .45) 43%, transparent 72%), radial-gradient(ellipse 80% 64% at 82% 22%, rgba(255, 255, 252, .72) 0 13%, rgba(255, 252, 241, .25) 48%, transparent 77%), radial-gradient(ellipse 95% 58% at 35% 102%, rgba(202, 181, 132, .26) 0 9%, rgba(255, 250, 234, .3) 43%, transparent 74%), linear-gradient(158deg, transparent 0 23%, rgba(173, 147, 94, .12) 38%, rgba(255, 255, 252, .52) 49%, rgba(177, 152, 103, .1) 59%, transparent 78%), linear-gradient(12deg, transparent 0 26%, rgba(255, 255, 255, .56) 43%, transparent 61%), radial-gradient(rgba(255, 255, 255, .42) .65px, transparent .95px), radial-gradient(rgba(126, 102, 65, .1) .55px, transparent .9px); background-position: center, center, center, center, center, 0 0, 3px 5px; background-size: auto, auto, auto, auto, auto, 9px 11px, 17px 19px; overflow: hidden; position: relative; }
+.services-preview { background-color: #e8dfc8; background-image: radial-gradient(ellipse 90% 78% at 2% -18%, rgba(255, 254, 246, .96) 0 19%, rgba(255, 253, 244, .45) 43%, transparent 72%), radial-gradient(ellipse 80% 64% at 82% 22%, rgba(255, 255, 252, .72) 0 13%, rgba(255, 252, 241, .25) 48%, transparent 77%), radial-gradient(ellipse 95% 58% at 35% 102%, rgba(202, 181, 132, .26) 0 9%, rgba(255, 250, 234, .3) 43%, transparent 74%), linear-gradient(158deg, transparent 0 23%, rgba(173, 147, 94, .12) 38%, rgba(255, 255, 252, .52) 49%, rgba(177, 152, 103, .1) 59%, transparent 78%), linear-gradient(12deg, transparent 0 26%, rgba(255, 255, 255, .56) 43%, transparent 61%), radial-gradient(rgba(255, 255, 255, .42) .65px, transparent .95px), radial-gradient(rgba(126, 102, 65, .1) .55px, transparent .9px); background-position: center, center, center, center, center, 0 0, 3px 5px; background-size: auto, auto, auto, auto, auto, 9px 11px, 17px 19px; overflow: hidden; padding-top: 320px; position: relative; }
 .services-preview .container { position: relative; z-index: 1; }
-.services-preview::before { background: url('/fairy-light-garland.png') center top / 100% 240px no-repeat; content: ''; filter: drop-shadow(0 10px 9px rgba(99, 59, 35, .16)) drop-shadow(0 0 10px rgba(255, 242, 195, .9)); height: 240px; left: 0; opacity: .9; pointer-events: none; position: absolute; top: -15px; transform: rotate(-.35deg); transform-origin: center; width: 100%; z-index: 0; animation: fairy-lights-sway 6s ease-in-out infinite alternate, fairy-lights-twinkle 2.8s ease-in-out infinite; }
+.services-preview::before { animation: fairy-lights-sway 6s ease-in-out infinite alternate, fairy-lights-twinkle 2.8s ease-in-out infinite; background: url('/hanging-bulb-decoration.png') center top / 300px auto repeat-x; content: ''; filter: drop-shadow(0 10px 9px rgba(99, 59, 35, .16)) drop-shadow(0 0 10px rgba(255, 242, 195, .9)); height: 300px; left: 0; opacity: .92; pointer-events: none; position: absolute; top: 0; transform: rotate(-.35deg); transform-origin: center; width: 100%; z-index: 0; }
 
 @keyframes fairy-lights-sway { from { transform: translateY(-3px) rotate(-.7deg); } to { transform: translateY(6px) rotate(.35deg); } }
 @keyframes fairy-lights-twinkle { 0%, 100% { filter: drop-shadow(0 10px 9px rgba(99, 59, 35, .16)) drop-shadow(0 0 7px rgba(255, 242, 195, .72)); } 50% { filter: drop-shadow(0 11px 9px rgba(99, 59, 35, .18)) drop-shadow(0 0 17px rgba(255, 244, 200, 1)); } }
 
-@media (max-width: 700px) { .services-preview::before { background-size: 100% 175px; height: 175px; top: -18px; } }
+@media (max-width: 700px) { .services-preview { padding-top: 235px; } .services-preview::before { background-size: 220px auto; height: 220px; top: 0; } }
 
 /* Global notifications and confirmations */
 .feedback-toasts { display: grid; gap: 12px; max-width: min(390px, calc(100vw - 32px)); pointer-events: none; position: fixed; right: 24px; top: 24px; z-index: 2100; }
