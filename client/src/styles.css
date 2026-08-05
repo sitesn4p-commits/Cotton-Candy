@@ -706,7 +706,10 @@ body { background: var(--cream); }
   .admin-sidebar-new.open { transform: translateX(0); visibility: visible; }
   .admin-sidebar-new .brand { margin: 0 14px 25px; }
   .admin-nav-new { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 0 2px 14px; }
-  .admin-sidebar-bottom { flex: 0 0 auto; margin-top: 0; padding-top: 12px; }
+  .admin-sidebar-bottom { background: #3e443b; display: grid; flex: 0 0 auto; gap: 7px; margin-top: 0; padding: 12px 4px 2px; width: 100%; }
+  .admin-sidebar-bottom a { min-height: 30px; }
+  .admin-sidebar-bottom button { background: #e8c3be; color: #30352d; justify-content: center; min-height: 42px; padding: 0 12px; }
+  .admin-sidebar-bottom button:hover { background: #fff4ee; color: #30352d; }
   .admin-menu-backdrop { background: rgba(31, 34, 28, .48); border: 0; display: block; inset: 0; position: fixed; touch-action: none; z-index: 1000; }
   .admin-menu-close { align-items: center; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .28); color: white; cursor: pointer; display: inline-flex; font: 700 9px var(--sans); letter-spacing: .6px; min-height: 30px; padding: 0 10px; position: absolute; right: 17px; text-transform: uppercase; top: 18px; }
   .admin-main-new { padding: 0 19px 45px; }

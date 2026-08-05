@@ -8,6 +8,8 @@ const adminLinks = [
   ['gallery/videos', 'Gallery videos', '▶'], ['promotions', 'Promotions', '♡'], ['home-content', 'Home content', '◌'],
 ] as const
 
+const websiteUrl = import.meta.env.VITE_WEBSITE_URL || 'https://cottoncandydeco.com.au'
+
 export function AdminLayout() {
   const [open, setOpen] = useState(false)
   const { signOut } = useAuth()
@@ -33,8 +35,8 @@ export function AdminLayout() {
       <nav id="admin-navigation" className="admin-nav admin-nav-new">
         {adminLinks.map(([path, label, icon]) => <NavLink end={!path} key={path || 'overview'} to={path ? `/manage-cotton-candy/${path}` : '/manage-cotton-candy'} onClick={() => setOpen(false)}><span>{icon}</span>{label}</NavLink>)}
       </nav>
-      <div className="admin-sidebar-bottom"><Link to="/" target="_blank">↗ View website</Link><button type="button" onClick={signOut}>→ Log out</button></div>
+      <div className="admin-sidebar-bottom"><a href={websiteUrl} target="_blank" rel="noreferrer">↗ View website</a><button type="button" onClick={signOut}>Log out</button></div>
     </aside>
-    <main className="admin-main admin-main-new"><header className="admin-topbar"><button type="button" className="admin-menu-toggle" aria-controls="admin-navigation" aria-expanded={open} aria-label={open ? 'Close admin menu' : 'Open admin menu'} onClick={() => setOpen((value) => !value)}>☰</button><div><p>Private management space</p><strong>Cotton Candy Event Deco</strong></div><Link to="/" target="_blank">View website ↗</Link></header><Outlet /></main>
+    <main className="admin-main admin-main-new"><header className="admin-topbar"><button type="button" className="admin-menu-toggle" aria-controls="admin-navigation" aria-expanded={open} aria-label={open ? 'Close admin menu' : 'Open admin menu'} onClick={() => setOpen((value) => !value)}>☰</button><div><p>Private management space</p><strong>Cotton Candy Event Deco</strong></div><a href={websiteUrl} target="_blank" rel="noreferrer">View website ↗</a></header><Outlet /></main>
   </div>
 }
