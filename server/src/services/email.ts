@@ -70,15 +70,27 @@ export async function sendPromotionEmail(input: PromotionEmailInput) {
 
 export async function sendActivationEmail(input: ActivationEmailInput) {
   const resend = configuredResend()
+  if (!env.resendBookingTemplateId) throw new Error('Booking email template is not ready. Add RESEND_BOOKING_TEMPLATE_ID in Render.')
   const eventDate = input.eventDate ? new Intl.DateTimeFormat('en-AU', { dateStyle: 'long' }).format(input.eventDate) : 'To be confirmed'
   const bookingType = input.type === 'hire' ? `Hire booking${input.hireDays > 1 ? ` · ${input.hireDays} days` : ''}` : 'Event service booking'
   const totalPrice = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', maximumFractionDigits: 0 }).format(input.totalPrice)
-  const customerName = escapeHtml(input.customerName || 'there')
-  const offeringName = escapeHtml(input.offeringName)
-  const trackingId = escapeHtml(input.trackingId)
-  const html = `<div style="background:#f4f0ea;color:#38382f;font-family:Arial,sans-serif;padding:32px 16px;"><main style="background:#fffdfa;margin:0 auto;max-width:560px;padding:34px;"><p style="color:#ae6965;font-size:11px;font-weight:700;letter-spacing:1.6px;margin:0 0 16px;text-transform:uppercase;">Cotton Candy Event Deco</p><h1 style="font-family:Georgia,serif;font-size:34px;font-weight:400;line-height:1.12;margin:0 0 18px;">Your booking is active.</h1><p style="font-size:16px;line-height:1.65;margin:0 0 18px;">Hi ${customerName},</p><p style="color:#6f6d63;font-size:15px;line-height:1.6;margin:0 0 24px;">Lovely news — your Cotton Candy booking is now active. We’re excited to create something beautiful for your celebration.</p><section style="background:#f1e7dc;padding:18px;"><p style="color:#ae6965;font-size:10px;font-weight:700;letter-spacing:1px;margin:0 0 9px;text-transform:uppercase;">Booking details</p><p style="font-size:16px;margin:0 0 8px;"><strong>${offeringName}</strong></p><p style="color:#6f6d63;font-size:13px;line-height:1.55;margin:0;">${bookingType}<br />Event date: ${eventDate}<br />Booking total: ${totalPrice}<br />Reference: ${trackingId}</p></section><p style="color:#6f6d63;font-size:13px;line-height:1.6;margin:24px 0 0;">If anything changes, simply reply to this email and our team will be happy to help.</p></main></div>`
-  const text = `Hi ${input.customerName || 'there'},\n\nLovely news — your Cotton Candy booking is now active.\n\n${input.offeringName}\n${bookingType}\nEvent date: ${eventDate}\nBooking total: ${totalPrice}\nReference: ${input.trackingId}\n\nIf anything changes, simply reply to this email and our team will be happy to help.`
-  const { data, error } = await resend.emails.send({ from: env.emailFrom, to: [input.email], subject: 'Your Cotton Candy booking is now active', html, text, ...(env.emailReplyTo ? { replyTo: env.emailReplyTo } : {}) })
+  const bookingUrl = env.websiteUrl ? `${env.websiteUrl}/services-hire` : ''
+  const { data, error } = await resend.emails.send({
+    to: [input.email],
+    template: {
+      id: env.resendBookingTemplateId,
+      variables: {
+        customer_name: input.customerName || 'there',
+        booking_id: input.trackingId,
+        service_name: input.offeringName,
+        event_date: eventDate,
+        total_amount: totalPrice,
+        booking_status: `Active · ${bookingType}`,
+        booking_url: bookingUrl,
+      },
+    },
+    ...(env.emailReplyTo ? { replyTo: env.emailReplyTo } : {}),
+  })
   if (error) throw new Error(error.message || 'Resend could not deliver this booking email.')
   return data?.id || ''
 }
