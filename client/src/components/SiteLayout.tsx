@@ -125,19 +125,27 @@ function SiteMotionEffects() {
         cover.className = 'footer-balloon-cover'
         cover.setAttribute('aria-hidden', 'true')
         const colours = ['#ef9eb5', '#f1d36d', '#9fd5c5', '#bfa0d6', '#f2a57f', '#eea3b8']
-        Array.from({ length: 28 }, (_, index) => {
-          const column = index % 7
-          const row = Math.floor(index / 7)
+        const addBalloon = (index: number, left: number, top: number, size: number) => {
           const balloon = document.createElement('span')
           balloon.className = 'footer-cover-balloon'
-          balloon.style.setProperty('--footer-balloon-x', `${4 + column * 15 + ((index * 7) % 9 - 4)}%`)
-          balloon.style.setProperty('--footer-balloon-y', `${5 + row * 25 + ((index * 11) % 8 - 4)}%`)
-          balloon.style.setProperty('--footer-balloon-size', `${72 + (index * 9) % 17}px`)
+          balloon.style.setProperty('--footer-balloon-x', `${left}%`)
+          balloon.style.setProperty('--footer-balloon-y', `${top}%`)
+          balloon.style.setProperty('--footer-balloon-size', `${size}px`)
           balloon.style.setProperty('--footer-balloon-colour', colours[index % colours.length])
           balloon.style.setProperty('--footer-balloon-rotate', `${-12 + (index * 13) % 25}deg`)
           balloon.style.setProperty('--footer-balloon-delay', `${-(index % 6) * .23}s`)
           cover.appendChild(balloon)
+        }
+        Array.from({ length: 28 }, (_, index) => {
+          const column = index % 7
+          const row = Math.floor(index / 7)
+          addBalloon(index, 24 + column * 8.75 + ((index * 7) % 9 - 4), 5 + row * 25 + ((index * 11) % 8 - 4), 72 + (index * 9) % 17)
         })
+        const sideBalloons = [
+          [2, 7, 70], [5, 40, 80], [10, 74, 67], [14, 18, 83], [18, 52, 76], [21, 80, 64],
+          [78, 10, 75], [83, 43, 82], [88, 76, 69], [92, 18, 80], [96, 54, 74], [99, 82, 63],
+        ]
+        sideBalloons.forEach(([left, top, size], index) => addBalloon(index + 28, left, top, size))
         const scatter = (event: globalThis.PointerEvent) => {
           const bounds = cover.getBoundingClientRect()
           cover.querySelectorAll<HTMLElement>('.footer-cover-balloon').forEach((balloon) => {

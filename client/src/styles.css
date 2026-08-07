@@ -1045,7 +1045,7 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .footer-invitation .button { background: #332f2a; box-shadow: 0 13px 24px rgba(56,42,37,.17); grid-column: 2; grid-row: 1 / span 2; min-width: 206px; }
 .footer-invitation .button:hover { background: #914c5b; transform: translateY(-4px); }
 .footer-spark { color: rgba(87,58,54,.55); }
-.footer-balloon-cover { display: block; height: 225px; opacity: .96; top: 50%; transform: translate(-50%, -47%); width: min(760px, 68vw); z-index: 4; }
+.footer-balloon-cover { display: block; height: 245px; opacity: .96; top: 50%; transform: translate(-50%, -47%); width: min(1420px, 100%); z-index: 4; }
 .footer-cover-balloon { animation: footer-cover-drift var(--footer-float-duration, 6.4s) ease-in-out var(--footer-balloon-delay) infinite; box-shadow: inset -12px -15px 20px rgba(76,46,51,.14), 0 13px 23px rgba(76,46,51,.17); transition: transform .7s cubic-bezier(.18,.82,.18,1); will-change: transform, translate; }
 .footer-cover-balloon:nth-child(4n + 1) { --footer-float-duration: 6.8s; --footer-float-x: 7px; --footer-float-y: -8px; }
 .footer-cover-balloon:nth-child(4n + 2) { --footer-float-duration: 5.7s; --footer-float-x: -8px; --footer-float-y: -5px; }
