@@ -925,7 +925,7 @@ body { background: var(--cream); }
 @media (min-width: 801px) {
   .hero-landscape { min-height: 710px; }
   .hero-landscape .hero-photo-main { aspect-ratio: 4 / 3; height: auto; right: max(6vw, 68px); top: 116px; width: min(42vw, 600px); }
-  .hero-landscape .hero-photo-small { bottom: 44px; right: min(39vw, 525px); }
+  .hero-landscape .hero-photo-small { bottom: 35px; height: clamp(230px, 22vw, 300px); right: min(37vw, 505px); width: clamp(190px, 18vw, 250px); z-index: 2; }
   .hero-landscape .hero-note { bottom: 74px; right: max(3vw, 30px); }
 }
 
