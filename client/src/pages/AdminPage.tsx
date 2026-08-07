@@ -396,6 +396,51 @@ export function AdminMediaPage({ kind }: { kind: 'image' | 'video' }) {
   return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">{kind === 'video' ? 'Gallery video upload or YouTube link' : 'Cloudinary gallery upload'}</p><h1>Gallery <em>{kind}s.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title={`Add ${kind}`}><form className="admin-form-grid" onSubmit={submit}><label>Title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category<input name="category" placeholder="e.g. Birthdays" /></label>{kind === 'video' ? <><label className="file-input admin-full">Upload video file (optional)<input name="media" type="file" accept="video/*" /></label><p className="admin-help admin-full">Or add a YouTube link instead. Use one option only.</p><label className="admin-full">YouTube video URL<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label></> : <label className="file-input admin-full">Image file<input name="media" type="file" accept="image/*" required /></label>}<button className="admin-button" type="submit">Add {kind}</button></form></Panel><Panel title={`Published ${kind}s`}>{media.length ? <div className="admin-media-grid">{media.map((item) => <article key={item._id}><MediaPreview item={item} /><div><strong>{item.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div> : <EmptyState>Upload your first gallery {kind}.</EmptyState>}</Panel></div></section>
 }
 
+export function AdminGalleryImagesPage() {
+  const token = useAdminToken()
+  const { confirm, notify } = useFeedback()
+  const [media, setMedia] = useState<MediaAsset[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [categoryMode, setCategoryMode] = useState<'new' | 'existing'>('new')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [newCategory, setNewCategory] = useState('')
+  const galleryCategories = useMemo(() => [...new Set(media.map((item) => item.category.trim()).filter(Boolean))].sort((first, second) => first.localeCompare(second)), [media])
+  const load = useCallback(() => api.adminMedia(token, 'image').then((items) => { setMedia(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load gallery images.'))), [token])
+
+  useEffect(() => { void load() }, [load])
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const category = (categoryMode === 'existing' ? selectedCategory : newCategory).trim()
+    if (!category) { setError('Choose an existing gallery category or enter a new category name.'); return }
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    form.set('kind', 'image')
+    form.set('category', category)
+    setError(null)
+    try {
+      await api.createMedia(token, form)
+      formElement.reset()
+      setSelectedCategory(category)
+      setNewCategory('')
+      setCategoryMode('existing')
+      await load()
+      notify({ title: 'Gallery image uploaded', message: `${category} is now available as a gallery filter on the website.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to upload gallery image.')) }
+  }
+
+  const removeMedia = async (item: MediaAsset) => {
+    if (!await confirm({ title: `Remove ${item.title}?`, message: 'This image will be permanently removed from the website gallery.', confirmLabel: 'Remove image' })) return
+    try {
+      await api.deleteMedia(token, item._id)
+      await load()
+      notify({ title: 'Gallery image removed', message: `${item.title} is no longer visible.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to remove gallery image.')) }
+  }
+
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Cloudinary gallery upload</p><h1>Gallery <em>images.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Add image"><form className="admin-form-grid" onSubmit={submit}><label>Title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category option<select value={categoryMode} onChange={(event) => setCategoryMode(event.target.value as 'new' | 'existing')}><option value="new">Create a new category</option><option disabled={!galleryCategories.length} value="existing">Use an existing category</option></select></label>{categoryMode === 'existing' ? <label className="admin-full">Existing gallery category<select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required><option value="">Select a category</option>{galleryCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label> : <label className="admin-full">New gallery category<input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="e.g. Weddings" required /></label>}<p className="admin-help admin-full">Each category you use becomes a filter on the public Gallery Images page.</p><label className="file-input admin-full">Image file<input name="media" type="file" accept="image/*" required /></label><button className="admin-button" type="submit">Add image</button></form></Panel><Panel title="Published images">{media.length ? <div className="admin-media-grid">{media.map((item) => <article key={item._id}><MediaPreview item={item} /><div><span className="admin-media-category">{item.category}</span><strong>{item.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div> : <EmptyState>Upload your first gallery image.</EmptyState>}</Panel></div></section>
+}
+
 export function AdminPromotionsPage() {
   const token = useAdminToken()
   const { confirm, notify } = useFeedback()
