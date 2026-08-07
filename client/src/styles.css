@@ -1045,7 +1045,14 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .footer-invitation .button { background: #332f2a; box-shadow: 0 13px 24px rgba(56,42,37,.17); grid-column: 2; grid-row: 1 / span 2; min-width: 206px; }
 .footer-invitation .button:hover { background: #914c5b; transform: translateY(-4px); }
 .footer-spark { color: rgba(87,58,54,.55); }
-.footer-balloon-cover { display: none !important; }
+.footer-balloon-cover { display: block; height: 225px; opacity: .96; top: 50%; transform: translate(-50%, -47%); width: min(760px, 68vw); z-index: 4; }
+.footer-cover-balloon { animation: footer-cover-drift var(--footer-float-duration, 6.4s) ease-in-out var(--footer-balloon-delay) infinite; box-shadow: inset -12px -15px 20px rgba(76,46,51,.14), 0 13px 23px rgba(76,46,51,.17); transition: transform .7s cubic-bezier(.18,.82,.18,1); will-change: transform, translate; }
+.footer-cover-balloon:nth-child(4n + 1) { --footer-float-duration: 6.8s; --footer-float-x: 7px; --footer-float-y: -8px; }
+.footer-cover-balloon:nth-child(4n + 2) { --footer-float-duration: 5.7s; --footer-float-x: -8px; --footer-float-y: -5px; }
+.footer-cover-balloon:nth-child(4n + 3) { --footer-float-duration: 7.4s; --footer-float-x: 5px; --footer-float-y: 9px; }
+.footer-cover-balloon:nth-child(4n) { --footer-float-duration: 6.1s; --footer-float-x: -6px; --footer-float-y: 8px; }
+.footer-cover-balloon:after { animation-duration: 5.8s; border-left-color: rgba(77,55,49,.33); }
+@keyframes footer-cover-drift { 0%, 100% { translate: 0 0; } 50% { translate: var(--footer-float-x) var(--footer-float-y); } }
 .site-footer .footer-top { align-items: start; border-bottom: 1px solid rgba(247,235,227,.15); gap: 36px; grid-template-columns: minmax(245px, 1.45fr) minmax(110px, .72fr) minmax(135px, .85fr) minmax(245px, 1.1fr); padding: 70px 0 55px; }
 .site-footer .footer-top:before { background: linear-gradient(90deg, rgba(239,199,187,.8), rgba(239,199,187,.08), transparent); left: 0; top: 31px; transform: none; width: 154px; }
 .site-footer .footer-brand { display: grid; grid-template-columns: 104px 1fr; grid-template-rows: auto auto; }
@@ -1079,6 +1086,7 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
   .site-footer .footer-newsletter { max-width: 530px; }
   .site-footer .footer-bottom { grid-template-columns: 1fr auto; }
   .site-footer .footer-bottom p:last-child { grid-column: 1 / -1; justify-self: start; }
+  .footer-balloon-cover { display: none; }
 }
 @media (max-width: 520px) {
   .footer-invitation { text-align: center; }
