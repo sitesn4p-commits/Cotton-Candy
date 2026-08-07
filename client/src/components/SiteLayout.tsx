@@ -34,7 +34,7 @@ export function SiteLayout() {
       const homeContent = await api.homeContent().catch(() => ({ heroMainUrl: '', heroSmallUrl: '' }))
       const heroImages = [homeContent.heroMainUrl || defaultHeroImages[0], homeContent.heroSmallUrl || defaultHeroImages[1]]
       await Promise.all(heroImages.map(preloadImage))
-      const remainingDisplayTime = Math.max(0, 850 - (performance.now() - startedAt))
+      const remainingDisplayTime = Math.max(0, 1150 - (performance.now() - startedAt))
       if (remainingDisplayTime) await new Promise((resolve) => window.setTimeout(resolve, remainingDisplayTime))
       if (!cancelled) setIsHeroLoading(false)
     }
@@ -77,6 +77,7 @@ export function SiteLayout() {
     <div className="site-loader" aria-label="Loading Cotton Candy"><div className="loader-orbit loader-orbit-one" /><div className="loader-orbit loader-orbit-two" /><span className="loader-mark">CC</span><p>Making it pretty…</p></div>
     <header className="site-header"><div className="container nav-wrap"><NavLink className="brand" to="/" onClick={closeMenu} aria-label="Cotton Candy home"><span className="brand-mark">C</span><span>Cotton<br /><em>Candy</em></span></NavLink><a className="header-phone" href="tel:+61492130377" aria-label="Call Cotton Candy Event Deco on 0492 130 377">0492 130 377</a><button className="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(true)}><span /><span /></button><nav className="site-nav site-nav-desktop" aria-label="Main navigation"><NavigationLinks closeMenu={closeMenu} /></nav></div></header>
     {open ? createPortal(<div className="mobile-nav-layer"><button className="mobile-nav-backdrop" type="button" aria-label="Close navigation" onClick={closeMenu} /><nav className="site-nav site-nav-mobile open" aria-label="Mobile navigation"><button className="mobile-drawer-close" type="button" aria-label="Close navigation" onClick={closeMenu}>×</button><NavigationLinks closeMenu={closeMenu} /><a className="mobile-nav-phone" href="tel:+61492130377" onClick={closeMenu}>Call us · 0492 130 377 <span>↗</span></a></nav></div>, document.body) : null}
+    <div className="loader-progress-card" aria-hidden="true"><span className="loader-progress-kicker">Cotton Candy Event Deco</span><div className="loader-progress-track"><span /></div><p>Adding the finishing touches</p></div>
     <main className="site-main"><Outlet /></main><SiteMotionEffects /><SiteFooter /><PromotionOverlay /><ScrollTopButton />{blooms.map((item) => <span className="click-bloom" key={item.id} style={{ left: item.x, top: item.y }} aria-hidden="true">✿</span>)}</div>
 }
 
