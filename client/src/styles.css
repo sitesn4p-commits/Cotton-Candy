@@ -328,13 +328,24 @@ body { background: var(--cream); }
 .admin-new { background: var(--dusty-rose); color: #714d4c; }
 .hero-admin-preview { background: #eae2da; }
 
-.site-loader { background: radial-gradient(circle at center, #fffdfb 0 7%, #fde6eb 45%, #f5cad4 100%); flex-direction: column; gap: 18px; }
-.site-loader p { color: var(--deep-rose); font-size: 9px; font-weight: 700; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
+.site-loader { background: radial-gradient(circle at 50% 38%, rgba(255,255,255,.96) 0 7%, rgba(255,239,242,.94) 34%, #f4cbd4 100%); flex-direction: column; gap: 17px; overflow: hidden; }
+.site-loader:before, .site-loader:after { border: 1px solid rgba(202,114,140,.17); border-radius: 50%; content: ''; height: min(78vw, 560px); position: absolute; width: min(78vw, 560px); }
+.site-loader:before { animation: loader-breathe 4s ease-in-out infinite; }
+.site-loader:after { animation: loader-breathe 4s ease-in-out -2s infinite; height: min(57vw, 390px); width: min(57vw, 390px); }
+.site-loader p { color: transparent; display: grid; font-size: 0; gap: 3px; margin: 0; position: relative; text-align: center; z-index: 1; }
+.site-loader p:before { color: var(--deep-rose); content: 'CREATING SOMETHING BEAUTIFUL'; font-size: 9px; font-weight: 700; letter-spacing: 2.4px; }
+.site-loader p:after { color: var(--muted); content: 'Preparing your celebration'; font-size: 12px; letter-spacing: 0; }
 .loader-orbit { border: 1px solid rgba(202,114,140,.28); border-radius: 50%; position: absolute; }
-.loader-orbit-one { animation: loader-spin 2.4s linear infinite; height: 145px; width: 145px; }
-.loader-orbit-two { animation: loader-spin 3.8s linear infinite reverse; border-style: dashed; height: 205px; width: 205px; }
-.loader-mark { position: relative; z-index: 1; }
+.loader-orbit-one { animation: loader-spin 5s linear infinite; height: 169px; width: 169px; }
+.loader-orbit-two { animation: loader-spin 7.4s linear infinite reverse; border-style: dashed; height: 231px; width: 231px; }
+.loader-mark { animation: none; background: rgba(255,255,255,.74); border: 1px solid rgba(202,114,140,.23); box-shadow: 0 20px 46px rgba(113,61,79,.14); height: 124px; overflow: hidden; padding: 11px; position: relative; width: 124px; z-index: 1; }
+.loader-mark:after { animation: loader-logo-float 3.3s ease-in-out infinite; background: url('/cotton-candy-logo.png') center/contain no-repeat; content: ''; inset: 10px; mix-blend-mode: multiply; position: absolute; }
+.loader-mark:before { animation: loader-progress 1.45s ease-in-out infinite; background: linear-gradient(90deg, var(--deep-rose), #f1b0bd, var(--sage)); border-radius: 99px; bottom: -25px; content: ''; height: 3px; left: -13px; position: absolute; transform: translateX(-100%); width: 128px; }
 @keyframes loader-spin { to { transform: rotate(360deg); } }
+@keyframes loader-breathe { 50% { opacity: .36; transform: scale(1.08); } }
+@keyframes loader-logo-float { 50% { transform: translateY(-4px) rotate(2deg) scale(1.025); } }
+@keyframes loader-progress { 0% { transform: translateX(-100%); } 58%, 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .loader-orbit, .loader-mark:after, .loader-mark:before, .site-loader:before, .site-loader:after { animation: none; } }
 .nav-dropdown { position: relative; }
 .nav-dropdown:after { content: none; }
 .nav-dropdown > a { align-items: center; display: inline-flex; gap: 3px; }

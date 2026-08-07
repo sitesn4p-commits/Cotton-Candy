@@ -18,7 +18,6 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--cream); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.62; }
 body.menu-open { overflow: hidden; }
-body:not(.loaded) { overflow: hidden; }
 a { color: inherit; text-decoration: none; }
 img { display: block; width: 100%; }
 button, input, select, textarea { font: inherit; }
@@ -28,7 +27,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .narrow { width: min(760px, calc(100% - 48px)); }
 
 .site-loader { align-items: center; background: #fcf0f2; display: flex; inset: 0; justify-content: center; opacity: 1; position: fixed; transition: opacity .55s ease, visibility .55s ease; visibility: visible; z-index: 1000; }
-body.loaded .site-loader { opacity: 0; visibility: hidden; }
+body.hero-ready .site-loader { opacity: 0; pointer-events: none; visibility: hidden; }
 .loader-mark { align-items: center; animation: pulse 1.4s ease-in-out infinite; background: var(--ink); border-radius: 50%; color: #fff; display: flex; font: 600 28px var(--serif); height: 82px; justify-content: center; letter-spacing: -2px; width: 82px; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 18px rgba(202,114,140,.15); transform: scale(1.05); } }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { api, type Promotion } from '../lib/api'
@@ -6,10 +6,46 @@ import { useAuth } from '../lib/useAuth'
 
 type Bloom = { id: number; x: number; y: number }
 
+const defaultHeroImages = [
+  'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=1400&q=85',
+  'https://images.unsplash.com/photo-1533294455009-a77b7557d2d1?auto=format&fit=crop&w=600&q=85',
+]
+
+function preloadImage(source: string) {
+  return new Promise<void>((resolve) => {
+    const image = new Image()
+    image.onload = () => resolve()
+    image.onerror = () => resolve()
+    image.src = source
+  })
+}
+
 export function SiteLayout() {
   const [open, setOpen] = useState(false)
   const [blooms, setBlooms] = useState<Bloom[]>([])
-  useEffect(() => { document.body.classList.add('loaded') }, [])
+  const isInitialHomeVisit = useRef(window.location.pathname === '/')
+  const [isHeroLoading, setIsHeroLoading] = useState(isInitialHomeVisit.current)
+  useEffect(() => {
+    if (!isInitialHomeVisit.current) return
+
+    let cancelled = false
+    const startedAt = performance.now()
+    const finishLoading = async () => {
+      const homeContent = await api.homeContent().catch(() => ({ heroMainUrl: '', heroSmallUrl: '' }))
+      const heroImages = [homeContent.heroMainUrl || defaultHeroImages[0], homeContent.heroSmallUrl || defaultHeroImages[1]]
+      await Promise.all(heroImages.map(preloadImage))
+      const remainingDisplayTime = Math.max(0, 850 - (performance.now() - startedAt))
+      if (remainingDisplayTime) await new Promise((resolve) => window.setTimeout(resolve, remainingDisplayTime))
+      if (!cancelled) setIsHeroLoading(false)
+    }
+
+    void finishLoading()
+    return () => { cancelled = true }
+  }, [])
+  useEffect(() => {
+    document.body.classList.toggle('hero-ready', !isHeroLoading)
+    return () => document.body.classList.remove('hero-ready')
+  }, [isHeroLoading])
   useEffect(() => {
     const { body } = document
     body.classList.toggle('menu-open', open)

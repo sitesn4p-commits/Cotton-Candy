@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useEffect } from 'react'
 import { AdminCategoriesPage, AdminCollectionPage, AdminGalleryImagesPage, AdminHomeContentPage, AdminMediaPage, AdminMessagesPage, AdminOrderHistoryPage, AdminPage, AdminPromotionsPage, AdminRequestsPage } from './pages/AdminPage'
 import { AdminLoginPage } from './pages/AdminLoginPage'
 import { ContactPage, GalleryImagesPage, GalleryPage, HireCollectionPage, HomePage, OfferingDetailsPage, PromotionsPage, ServicesCollectionPage, ServicesHirePage, UpdatedAboutPage } from './pages/PublicPages'
@@ -27,7 +26,6 @@ export default function App() {
     </>
   )
 
-  useEffect(() => { document.body.classList.add('loaded') }, [])
   return (
     <Routes>
       {!isAdminBuild && (
