@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { Category } from '../models/Category.js'
 import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
+import { NewsletterSubscriber } from '../models/NewsletterSubscriber.js'
 import { Offering } from '../models/Offering.js'
 import { Promotion } from '../models/Promotion.js'
 import { PromotionEmail } from '../models/PromotionEmail.js'
@@ -75,6 +76,18 @@ router.get('/dashboard', async (_req, res, next) => {
       MediaAsset.countDocuments(),
     ])
     return res.json({ totals: { requests: requestCount, pending: pendingCount, unreadMessages, media: mediaCount }, requests, messages, offerings, promotions })
+  } catch (error) { return next(error) }
+})
+
+router.get('/newsletter-subscribers', async (_req, res, next) => {
+  try { return res.json(await NewsletterSubscriber.find().sort({ createdAt: -1 })) } catch (error) { return next(error) }
+})
+
+router.delete('/newsletter-subscribers/:subscriberId', async (req, res, next) => {
+  try {
+    const subscriber = await NewsletterSubscriber.findByIdAndDelete(req.params.subscriberId)
+    if (!subscriber) return res.status(404).json({ message: 'Subscriber not found.' })
+    return res.status(204).send()
   } catch (error) { return next(error) }
 })
 

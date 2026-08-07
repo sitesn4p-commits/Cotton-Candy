@@ -33,6 +33,7 @@ export type AdminDashboard = { totals: { requests: number; pending: number; unre
 export type AuthUser = { id: string; name: string; email: string; role: 'admin' }
 export type AuthResponse = { token: string; user: AuthUser }
 export type PromotionEmailResult = { message: string; sent: number; failed?: number }
+export type NewsletterSubscriber = { _id: string; email: string; createdAt: string }
 
 export const api = {
   categories: (type?: CollectionType) => request<Category[]>(`/categories${type ? `?type=${type}` : ''}`),
@@ -44,9 +45,12 @@ export const api = {
   promotions: () => request<Promotion[]>('/promotions'),
   featuredPromotion: () => request<Promotion | null>('/promotions/featured'),
   homeContent: () => request<HomeContent>('/home-content'),
+  subscribeNewsletter: (email: string) => request<{ message: string }>('/newsletter-subscribers', { method: 'POST', body: { email } }),
   sendEnquiry: (body: Record<string, unknown>) => request<{ message: string }>('/contact', { method: 'POST', body }),
   signInAsAdmin: (email: string, password: string) => request<AuthResponse>('/auth/admin-login', { method: 'POST', body: { email, password } }),
   dashboard: (token: string) => request<AdminDashboard>('/admin/dashboard', { token }),
+  adminNewsletterSubscribers: (token: string) => request<NewsletterSubscriber[]>('/admin/newsletter-subscribers', { token }),
+  deleteNewsletterSubscriber: (token: string, subscriberId: string) => request<void>(`/admin/newsletter-subscribers/${subscriberId}`, { method: 'DELETE', token }),
   adminCategories: (token: string, type?: CollectionType) => request<Category[]>(`/admin/categories${type ? `?type=${type}` : ''}`, { token }),
   createCategory: (token: string, body: Record<string, unknown>) => request<Category>('/admin/categories', { method: 'POST', body, token }),
   updateCategory: (token: string, categoryId: string, body: Record<string, unknown>) => request<Category>(`/admin/categories/${categoryId}`, { method: 'PATCH', body, token }),

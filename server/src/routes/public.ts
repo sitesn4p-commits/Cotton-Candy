@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { Category } from '../models/Category.js'
 import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
+import { NewsletterSubscriber } from '../models/NewsletterSubscriber.js'
 import { Offering } from '../models/Offering.js'
 import { Promotion } from '../models/Promotion.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
@@ -11,6 +12,7 @@ import { verifyUnsubscribeToken } from '../services/email.js'
 const router = Router()
 const validTypes = new Set(['service', 'hire'])
 const validKinds = new Set(['image', 'video'])
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function trackingId() {
   const date = new Date().toISOString().slice(0, 10).replaceAll('-', '')
@@ -140,6 +142,20 @@ router.get('/promotions/featured', async (_req, res, next) => {
 
 router.get('/home-content', async (_req, res, next) => {
   try { return res.json(await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })) } catch (error) { return next(error) }
+})
+
+router.post('/newsletter-subscribers', async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase()
+    if (!emailPattern.test(email)) return res.status(400).json({ message: 'Enter a valid email address.' })
+    const existing = await NewsletterSubscriber.findOne({ email })
+    if (existing) return res.json({ message: 'You are already on the pretty list.' })
+    const subscriber = await NewsletterSubscriber.create({ email })
+    return res.status(201).json({ message: 'You are on the pretty list!', subscriber })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('duplicate key')) return res.json({ message: 'You are already on the pretty list.' })
+    return next(error)
+  }
 })
 
 router.post('/contact', async (req, res, next) => {

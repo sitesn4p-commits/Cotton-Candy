@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useFeedback } from '../components/Feedback'
-import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type MediaAsset, type Offering, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
+import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type MediaAsset, type NewsletterSubscriber, type Offering, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 
 const emptyDashboard: AdminDashboard = { totals: { requests: 0, pending: 0, unreadMessages: 0, media: 0 }, requests: [], messages: [], offerings: [], promotions: [] }
@@ -354,6 +354,24 @@ export function AdminMessagesPage() {
     } catch (reason) { setError(messageFor(reason, 'Unable to update message.')) }
   }
   return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Website contact form</p><h1>Customer <em>messages.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card">{messages.length ? <div className="message-list">{messages.map((message) => <article className={message.read ? '' : 'unread'} key={message._id}><div><strong>{message.name}</strong><p>{message.email}{message.phone ? ` · ${message.phone}` : ''}</p></div><p>{message.message}</p><footer><span>{new Date(message.createdAt).toLocaleString()}</span><button type="button" onClick={() => void updateReadState(message)}>{message.read ? 'Mark unread' : 'Mark read'}</button></footer></article>)}</div> : <EmptyState>New contact form messages will appear here.</EmptyState>}</section></section>
+}
+
+export function AdminNewsletterSubscribersPage() {
+  const token = useAdminToken()
+  const { confirm, notify } = useFeedback()
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const load = useCallback(() => api.adminNewsletterSubscribers(token).then((items) => { setSubscribers(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load newsletter subscribers.'))), [token])
+  useEffect(() => { void load() }, [load])
+  const removeSubscriber = async (subscriber: NewsletterSubscriber) => {
+    if (!await confirm({ title: `Remove ${subscriber.email}?`, message: 'This email address will be removed from the newsletter list.', confirmLabel: 'Remove subscriber' })) return
+    try {
+      await api.deleteNewsletterSubscriber(token, subscriber._id)
+      await load()
+      notify({ title: 'Subscriber removed', message: `${subscriber.email} has been removed from the newsletter list.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to remove this subscriber.')) }
+  }
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Footer newsletter</p><h1>Pretty list <em>subscribers.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-history-note"><strong>{subscribers.length}</strong> visitor{subscribers.length === 1 ? '' : 's'} joined through the website newsletter form.</div><section className="admin-card admin-table-card"><header><h2>Subscriber emails</h2><span>{subscribers.length} total</span></header>{subscribers.length ? <div className="subscriber-list">{subscribers.map((subscriber) => <article key={subscriber._id}><div><a href={`mailto:${subscriber.email}`}>{subscriber.email}</a><small>Joined {new Date(subscriber.createdAt).toLocaleString()}</small></div><button type="button" onClick={() => void removeSubscriber(subscriber)}>Remove</button></article>)}</div> : <EmptyState>Newsletter sign-ups from the footer will appear here.</EmptyState>}</section></section>
 }
 
 function MediaPreview({ item }: { item: MediaAsset }) {

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { api, type Promotion } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
+import { useFeedback } from './Feedback'
 
 type Bloom = { id: number; x: number; y: number }
 
@@ -214,6 +215,26 @@ function SiteFooter() {
   return <footer className="site-footer"><section className="footer-invitation"><div className="footer-spark footer-spark-one">✦</div><div className="footer-spark footer-spark-two">✦</div><div className="footer-invitation-inner container"><p className="eyebrow">Your sweetest celebration starts here</p><h2>Let’s make your next<br /><em>moment unforgettable.</em></h2><NavLink className="button button-dark" to="/contact">Start your enquiry <span>↗</span></NavLink></div></section><div className="footer-top container"><div className="footer-brand"><NavLink className="brand" to="/"><span className="brand-mark">C</span><span>Cotton<br /><em>Candy</em></span></NavLink><p>Creating sweet, considered celebrations across Melbourne.</p><div className="social-links" aria-label="Follow Cotton Candy Event Deco"><a href="https://www.youtube.com/@cottoncandyeventdeco" target="_blank" rel="noreferrer" aria-label="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 7.2a2.8 2.8 0 0 0-2-2C17.7 4.8 12 4.8 12 4.8s-5.7 0-7.4.4a2.8 2.8 0 0 0-2 2C2.2 9 2.2 12 2.2 12s0 3 .4 4.8a2.8 2.8 0 0 0 2 2c1.7.4 7.4.4 7.4.4s5.7 0 7.4-.4a2.8 2.8 0 0 0 2-2c.4-1.8.4-4.8.4-4.8s0-3-.4-4.8ZM9.7 15.1V8.9l5.3 3.1-5.3 3.1Z" /></svg></a><a href="https://www.tiktok.com/@cotton_candy_deco" target="_blank" rel="noreferrer" aria-label="TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.2 3c.3 2.2 1.5 3.7 3.7 4v3.1a7.2 7.2 0 0 1-3.7-1.2v6.6a5.6 5.6 0 1 1-4.8-5.5v3.1a2.5 2.5 0 1 0 1.7 2.4V3h3.1Z" /></svg></a><a href="https://www.facebook.com/CottonCandyEventDeco/" target="_blank" rel="noreferrer" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.8 21v-8h2.7l.4-3.1h-3.1V8c0-.9.3-1.5 1.6-1.5H17V3.7c-.4-.1-1.3-.2-2.4-.2-2.4 0-4.1 1.5-4.1 4.2v2.2H7.8V13h2.7v8h3.3Z" /></svg></a><a href="https://www.instagram.com/cottoncandy_event_deco/" target="_blank" rel="noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.4" y="3.4" width="17.2" height="17.2" rx="4.5" /><circle cx="12" cy="12" r="4" /><circle cx="17.4" cy="6.7" r="1" className="social-dot" /></svg></a></div></div><div><p className="footer-heading">Explore</p><NavLink to="/about">About us</NavLink><NavLink to="/services">Services</NavLink><NavLink to="/hire">Hire collection</NavLink><NavLink to="/promotions">Promotions</NavLink></div><div><p className="footer-heading">More magic</p><NavLink to="/gallery/images">Gallery images</NavLink><NavLink to="/gallery/videos">Gallery videos</NavLink><NavLink to="/services-hire">Track a request</NavLink><NavLink to="/contact">Make an enquiry</NavLink></div><div className="footer-newsletter"><p className="footer-heading">A little bit of pretty</p><p>Occasional inspiration, new pieces and sweet event ideas.</p><NewsletterForm /></div></div><div className="footer-bottom container"><p>© 2026 Cotton Candy Event Deco</p><div><a href="/">Privacy</a><a href="/">Terms</a></div><p>Developed by <a href="https://sites-nap.vercel.app/" target="_blank" rel="noreferrer">Sitesnap</a></p></div></footer>
 }
 
-function NewsletterForm() { const [complete, setComplete] = useState(false); return <form className="newsletter-form" onSubmit={(event) => { event.preventDefault(); setComplete(true) }}><input type="email" aria-label="Email address" placeholder={complete ? 'You’re on the pretty list!' : 'Your email address'} required /><button aria-label="Subscribe" type="submit">→</button></form> }
+function NewsletterForm() {
+  const { notify } = useFeedback()
+  const [email, setEmail] = useState('')
+  const [complete, setComplete] = useState(false)
+  const [subscribing, setSubscribing] = useState(false)
+  const [error, setError] = useState('')
+  const subscribe = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubscribing(true)
+    setError('')
+    try {
+      const response = await api.subscribeNewsletter(email)
+      setComplete(true)
+      setEmail('')
+      notify({ title: 'You are on the pretty list', message: response.message })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to subscribe right now. Please try again.')
+    } finally { setSubscribing(false) }
+  }
+  return <div className="newsletter-signup"><form className="newsletter-form" onSubmit={subscribe}><input type="email" aria-label="Email address" placeholder="Your email address" value={email} onChange={(event) => setEmail(event.target.value)} required /><button aria-label="Subscribe" type="submit" disabled={subscribing}>{subscribing ? '…' : '→'}</button></form>{complete ? <p className="newsletter-status" role="status">You’re on the pretty list!</p> : null}{error ? <p className="newsletter-status error" role="alert">{error}</p> : null}</div>
+}
 
 export function ProtectedAdmin({ children }: { children: ReactNode }) { const { user } = useAuth(); if (!user || user.role !== 'admin') return <Navigate to="/manage-cotton-candy/sign-in" replace />; return <>{children}</> }
