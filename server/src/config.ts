@@ -22,6 +22,7 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || '',
   emailReplyTo: process.env.EMAIL_REPLY_TO || '',
-  resendBookingTemplateId: process.env.RESEND_BOOKING_TEMPLATE_ID || '',
+  resendBookingTemplateId: process.env.RESEND_BOOKING_TEMPLATE_ID || 'cotton-candy-booking-confirmation',
   resendCompletionTemplateId: process.env.RESEND_COMPLETION_TEMPLATE_ID || '',
+  resendPromotionTemplateId: process.env.RESEND_PROMOTION_TEMPLATE_ID || '',
 }

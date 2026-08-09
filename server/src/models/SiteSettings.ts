@@ -18,6 +18,8 @@ const siteSettingsSchema = new Schema({
   aboutHeroPublicId: { type: String, default: '' },
   aboutStoryUrl: { type: String, default: '' },
   aboutStoryPublicId: { type: String, default: '' },
+  aboutFinishingUrl: { type: String, default: '' },
+  aboutFinishingPublicId: { type: String, default: '' },
   bookingsHeroUrl: { type: String, default: '' },
   bookingsHeroPublicId: { type: String, default: '' },
 }, { timestamps: true })

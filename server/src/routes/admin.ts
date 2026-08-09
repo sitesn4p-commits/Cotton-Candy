@@ -546,12 +546,13 @@ router.get('/page-artwork', async (_req, res, next) => {
   try { return res.json(await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })) } catch (error) { return next(error) }
 })
 
-router.patch('/page-artwork', upload.fields([{ name: 'aboutHero', maxCount: 1 }, { name: 'aboutStory', maxCount: 1 }, { name: 'bookingsHero', maxCount: 1 }]), async (req, res, next) => {
+router.patch('/page-artwork', upload.fields([{ name: 'aboutHero', maxCount: 1 }, { name: 'aboutStory', maxCount: 1 }, { name: 'aboutFinishing', maxCount: 1 }, { name: 'bookingsHero', maxCount: 1 }]), async (req, res, next) => {
   try {
     const settings = await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })
     const artwork = [
       ['aboutHero', 'aboutHeroUrl', 'aboutHeroPublicId', 'About page hero image'],
       ['aboutStory', 'aboutStoryUrl', 'aboutStoryPublicId', 'About page story image'],
+      ['aboutFinishing', 'aboutFinishingUrl', 'aboutFinishingPublicId', 'About page finishing touches image'],
       ['bookingsHero', 'bookingsHeroUrl', 'bookingsHeroPublicId', 'Bookings page hero image'],
     ] as const
     let changed = false
