@@ -1,12 +1,14 @@
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { isWebPushConfigured, registerWebPush } from '../lib/firebase'
 import { useAuth } from '../lib/useAuth'
 import { useFeedback } from './Feedback'
 
 const pushTokenKey = 'cotton-candy-admin-push-token-v1'
+
+type NativeListener = { remove: () => Promise<void> }
 
 export function storedAdminPushToken() {
   return localStorage.getItem(pushTokenKey)
@@ -15,56 +17,88 @@ export function storedAdminPushToken() {
 export function AdminPushRegistration() {
   const { token } = useAuth()
   const { notify } = useFeedback()
+  const [isWorking, setIsWorking] = useState(false)
+  const [isEnabled, setIsEnabled] = useState(Boolean(storedAdminPushToken()))
+  const foregroundUnsubscribe = useRef<(() => void) | null>(null)
+  const nativeListeners = useRef<NativeListener[]>([])
 
-  useEffect(() => {
+  const saveToken = async (deviceToken: string, platform: 'web' | 'android') => {
     if (!token) return
+    localStorage.setItem(pushTokenKey, deviceToken)
+    await api.registerAdminPushDevice(token, { token: deviceToken, platform, userAgent: navigator.userAgent })
+    setIsEnabled(true)
+  }
 
-    if (!Capacitor.isNativePlatform()) {
-      let unsubscribe: () => void = () => undefined
-      if (!isWebPushConfigured()) return
-      void registerWebPush((payload) => {
-        notify({ tone: 'info', title: payload.notification?.title || 'New dashboard update', message: payload.notification?.body })
-      }).then((registration) => {
-        if (!registration?.token) return
-        unsubscribe = registration.unsubscribe
-        localStorage.setItem(pushTokenKey, registration.token)
-        return api.registerAdminPushDevice(token, { token: registration.token, platform: 'web', userAgent: navigator.userAgent })
-      }).catch(() => notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Check the Firebase web configuration, then refresh the dashboard.' }))
-      return () => unsubscribe()
+  const enableWebPush = async (announce: boolean) => {
+    if (!isWebPushConfigured()) {
+      notify({ tone: 'error', title: 'Notifications are not configured', message: 'Refresh the app once, then try again.' })
+      return
     }
 
-    let disposed = false
-    const listeners: Array<{ remove: () => Promise<void> }> = []
-    const registerForPush = async () => {
-      listeners.push(await PushNotifications.addListener('registration', ({ value }) => {
-        if (disposed) return
-        localStorage.setItem(pushTokenKey, value)
-        void api.registerAdminPushDevice(token, { token: value, platform: 'android', userAgent: navigator.userAgent })
-          .catch(() => notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Refresh the app and try again.' }))
+    const registration = await registerWebPush((payload) => {
+      notify({ tone: 'info', title: payload.notification?.title || 'New dashboard update', message: payload.notification?.body })
+    })
+
+    if (!registration?.token) {
+      if (announce) notify({ tone: 'info', title: 'Allow notifications first', message: 'Allow notifications in your browser prompt, then select Enable notifications again.' })
+      return
+    }
+
+    foregroundUnsubscribe.current?.()
+    foregroundUnsubscribe.current = registration.unsubscribe
+    await saveToken(registration.token, 'web')
+    if (announce) notify({ title: 'Notifications enabled', message: 'Booking and contact alerts will now appear on this device.' })
+  }
+
+  const enableNativePush = async (announce: boolean) => {
+    if (!nativeListeners.current.length) {
+      nativeListeners.current.push(await PushNotifications.addListener('registration', ({ value }) => {
+        void saveToken(value, 'android').then(() => {
+          if (announce) notify({ title: 'Notifications enabled', message: 'Booking and contact alerts will now appear on this device.' })
+        }).catch(() => notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Refresh the app and try again.' }))
       }))
-      listeners.push(await PushNotifications.addListener('registrationError', () => {
-        if (!disposed) notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Check the Firebase Android setup, then refresh the app.' })
+      nativeListeners.current.push(await PushNotifications.addListener('registrationError', () => {
+        notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Check the Firebase Android setup, then refresh the app.' })
       }))
-      listeners.push(await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
+      nativeListeners.current.push(await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
         const route = notification.data?.route
         if (typeof route === 'string' && route.startsWith('/manage-cotton-candy/')) window.location.assign(route)
       }))
-
-      const currentPermission = await PushNotifications.checkPermissions()
-      const permission = currentPermission.receive === 'prompt' ? await PushNotifications.requestPermissions() : currentPermission
-      if (permission.receive !== 'granted') {
-        notify({ tone: 'info', title: 'Notifications are off', message: 'Enable notifications in your phone settings to receive booking alerts.' })
-        return
-      }
-      await PushNotifications.register()
     }
 
-    void registerForPush()
-    return () => {
-      disposed = true
-      void Promise.all(listeners.map((listener) => listener.remove()))
+    const currentPermission = await PushNotifications.checkPermissions()
+    const permission = currentPermission.receive === 'prompt' ? await PushNotifications.requestPermissions() : currentPermission
+    if (permission.receive !== 'granted') {
+      if (announce) notify({ tone: 'info', title: 'Notifications are off', message: 'Enable notifications in your phone settings to receive booking alerts.' })
+      return
     }
-  }, [notify, token])
+    await PushNotifications.register()
+  }
 
-  return null
+  const enableNotifications = async () => {
+    if (!token || isWorking) return
+    setIsWorking(true)
+    try {
+      if (Capacitor.isNativePlatform()) await enableNativePush(true)
+      else await enableWebPush(true)
+    } catch {
+      notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Use the latest Chrome or Edge, then try again.' })
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!token || Capacitor.isNativePlatform() || Notification.permission !== 'granted' || !isWebPushConfigured()) return
+    void enableWebPush(false).catch(() => undefined)
+  }, [token])
+
+  useEffect(() => () => {
+    foregroundUnsubscribe.current?.()
+    void Promise.all(nativeListeners.current.map((listener) => listener.remove()))
+  }, [])
+
+  return <button className="admin-push-action" type="button" onClick={() => void enableNotifications()} disabled={isWorking || isEnabled}>
+    {isEnabled ? 'Notifications on' : isWorking ? 'Enabling notifications' : 'Enable notifications'}
+  </button>
 }

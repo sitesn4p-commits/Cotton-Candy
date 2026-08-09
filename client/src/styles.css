@@ -596,6 +596,9 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .admin-sidebar-bottom a:hover, .admin-sidebar-bottom button:hover { color: white; }
 .admin-sidebar-bottom .admin-install-action { background: rgba(248, 244, 243, .12); border: 1px solid rgba(248, 244, 243, .34); border-radius: 6px; color: #fff7f1; font-weight: 700; justify-content: center; letter-spacing: .7px; margin-bottom: 5px; padding: 10px 12px; text-align: center; transition: background .2s ease, transform .2s ease; }
 .admin-sidebar-bottom .admin-install-action:hover { background: rgba(248, 244, 243, .22); transform: translateY(-1px); }
+.admin-sidebar-bottom .admin-push-action { background: transparent; border: 1px solid rgba(248, 244, 243, .42); border-radius: 6px; color: #fff7f1; font-weight: 700; justify-content: center; letter-spacing: .7px; margin-bottom: 5px; padding: 10px 12px; text-align: center; transition: background .2s ease, transform .2s ease; }
+.admin-sidebar-bottom .admin-push-action:hover:not(:disabled) { background: rgba(248, 244, 243, .16); transform: translateY(-1px); }
+.admin-sidebar-bottom .admin-push-action:disabled { cursor: default; opacity: .68; }
 
 @media (min-width: 801px) {
   .admin-workspace { height: 100dvh; min-height: 0; overflow: hidden; }

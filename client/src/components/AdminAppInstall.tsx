@@ -39,7 +39,7 @@ export function AdminAppInstall() {
 
   const install = async () => {
     if (!installPrompt) {
-      notify({ tone: 'info', title: 'Use your browser menu to install', message: 'Choose “Install app” or “Add to Home screen”.' })
+      notify({ tone: 'info', title: 'Install from your browser menu', message: 'Chrome or Edge: menu → Install app. iPhone/iPad: Share → Add to Home Screen.' })
       return
     }
     await installPrompt.prompt()
