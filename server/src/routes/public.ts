@@ -121,7 +121,7 @@ router.get('/service-requests', async (req, res, next) => {
     const email = String(req.query.email || '').trim().toLowerCase()
     if (!email || !email.includes('@')) return res.status(400).json({ message: 'Enter the email address used for the order.' })
     const requests = await ServiceRequest.find({ email }).select('trackingId type offeringName customerName email phone eventType eventDate notes status createdAt updatedAt hireDays unitPrice subtotal discountPercent discountAmount totalPrice promotionTitle advancePaymentComplete')
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 }).lean()
     return res.json(requests)
   } catch (error) { return next(error) }
 })
@@ -218,7 +218,14 @@ router.get('/promotions/featured', async (_req, res, next) => {
 })
 
 router.get('/home-content', async (_req, res, next) => {
-  try { return res.json(await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })) } catch (error) { return next(error) }
+  try {
+    let settings = await SiteSettings.findOne({ key: 'main' }).lean()
+    if (!settings) {
+      await SiteSettings.updateOne({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { upsert: true })
+      settings = await SiteSettings.findOne({ key: 'main' }).lean()
+    }
+    return res.json(settings)
+  } catch (error) { return next(error) }
 })
 
 router.post('/newsletter-subscribers', async (req, res, next) => {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEven
 import { Link, useParams } from 'react-router-dom'
 import { useFeedback } from '../components/Feedback'
 import { api, type Category, type CollectionType, type HomeContent, type MediaAsset, type Offering, type Promotion, type ServiceRequest } from '../lib/api'
+import { heroImageWidth, optimizedImageUrl, responsiveImageSrcSet } from '../lib/images'
 
 const heroBalloons = [
   { color: 'pink', left: 7, top: 38, size: 78, tilt: -8 }, { color: 'lilac', left: 31, top: 11, size: 46, tilt: 9 },
@@ -155,8 +156,16 @@ function HeroImageSlider({ images }: { images: Array<{ src: string; alt: string 
     const timer = window.setInterval(() => setActiveSlide((current) => (current + 1) % slideCount), 5200)
     return () => window.clearInterval(timer)
   }, [slideCount])
+  useEffect(() => {
+    if (slideCount < 2) return
+    const nextImage = images[(activeSlide + 1) % slideCount]
+    const preload = new Image()
+    preload.src = optimizedImageUrl(nextImage.src, heroImageWidth())
+  }, [activeSlide, images, slideCount])
   const selectSlide = (index: number) => setActiveSlide((index + slideCount) % slideCount)
-  return <div className="hero-slider-art" aria-label="Featured Cotton Candy event styling images"><div className="hero-slider-card"><div className="hero-slider-window">{images.map((image, index) => <img className={index === activeSlide ? 'is-active' : ''} key={image.src} src={image.src} alt={image.alt} />)}</div><button className="hero-slider-arrow hero-slider-arrow-previous" type="button" aria-label="Show previous image" onClick={() => selectSlide(activeSlide - 1)}>‹</button><button className="hero-slider-arrow hero-slider-arrow-next" type="button" aria-label="Show next image" onClick={() => selectSlide(activeSlide + 1)}>›</button><div className="hero-slider-footer"><span>{String(activeSlide + 1).padStart(2, '0')} / {String(slideCount).padStart(2, '0')}</span><div className="hero-slider-dots">{images.map((image, index) => <button className={index === activeSlide ? 'is-active' : ''} type="button" aria-label={`Show image ${index + 1}`} aria-current={index === activeSlide ? 'true' : undefined} key={image.src} onClick={() => selectSlide(index)} />)}</div><strong>Celebrations, <em>extra special.</em></strong></div></div></div>
+  const activeImage = images[activeSlide] || images[0]
+  const srcSet = responsiveImageSrcSet(activeImage.src, [480, 720, 960, 1200])
+  return <div className="hero-slider-art" aria-label="Featured Cotton Candy event styling images"><div className="hero-slider-card"><div className="hero-slider-window"><img className="is-active" src={optimizedImageUrl(activeImage.src, heroImageWidth())} srcSet={srcSet} sizes="(max-width: 800px) 68vw, min(42vw, 600px)" alt={activeImage.alt} decoding="async" fetchPriority="high" /></div><button className="hero-slider-arrow hero-slider-arrow-previous" type="button" aria-label="Show previous image" onClick={() => selectSlide(activeSlide - 1)}>‹</button><button className="hero-slider-arrow hero-slider-arrow-next" type="button" aria-label="Show next image" onClick={() => selectSlide(activeSlide + 1)}>›</button><div className="hero-slider-footer"><span>{String(activeSlide + 1).padStart(2, '0')} / {String(slideCount).padStart(2, '0')}</span><div className="hero-slider-dots">{images.map((image, index) => <button className={index === activeSlide ? 'is-active' : ''} type="button" aria-label={`Show image ${index + 1}`} aria-current={index === activeSlide ? 'true' : undefined} key={image.src} onClick={() => selectSlide(index)} />)}</div><strong>Celebrations, <em>extra special.</em></strong></div></div></div>
 }
 
 export function HomePage() {

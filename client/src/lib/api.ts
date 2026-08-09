@@ -1,6 +1,10 @@
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 type ApiOptions = Omit<RequestInit, 'body'> & { body?: BodyInit | Record<string, unknown>; token?: string }
+type CachedResponse = { expiresAt: number; value: unknown }
+
+const publicResponseCache = new Map<string, CachedResponse>()
+const publicResponseRequests = new Map<string, Promise<unknown>>()
 
 async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { token, body, headers, ...init } = options
@@ -18,6 +22,24 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const payload = await response.json().catch(() => ({ message: 'The server returned an unexpected response.' })) as T & { message?: string }
   if (!response.ok) throw new Error(payload.message || 'Something went wrong. Please try again.')
   return payload
+}
+
+function cachedPublicRequest<T>(path: string, cacheForMs = 45_000): Promise<T> {
+  const cached = publicResponseCache.get(path)
+  if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached.value as T)
+
+  const pending = publicResponseRequests.get(path)
+  if (pending) return pending as Promise<T>
+
+  const next = request<T>(path)
+    .then((value) => {
+      publicResponseCache.set(path, { expiresAt: Date.now() + cacheForMs, value })
+      return value
+    })
+    .finally(() => publicResponseRequests.delete(path))
+
+  publicResponseRequests.set(path, next)
+  return next
 }
 
 export type CollectionType = 'service' | 'hire'
@@ -39,16 +61,16 @@ export type OrderNotification = { _id: string; request?: Pick<ServiceRequest, '_
 export type OrderWorkflowResult = { message: string; request: ServiceRequest; emailSent: boolean }
 
 export const api = {
-  categories: (type?: CollectionType) => request<Category[]>(`/categories${type ? `?type=${type}` : ''}`),
-  offerings: (type?: CollectionType, category?: string) => request<Offering[]>(`/offerings?${new URLSearchParams({ ...(type ? { type } : {}), ...(category ? { category } : {}) })}`),
-  offering: (offeringId: string) => request<Offering>(`/offerings/${offeringId}`),
+  categories: (type?: CollectionType) => cachedPublicRequest<Category[]>(`/categories${type ? `?type=${type}` : ''}`),
+  offerings: (type?: CollectionType, category?: string) => cachedPublicRequest<Offering[]>(`/offerings?${new URLSearchParams({ ...(type ? { type } : {}), ...(category ? { category } : {}) })}`),
+  offering: (offeringId: string) => cachedPublicRequest<Offering>(`/offerings/${offeringId}`),
   createServiceRequest: (body: Record<string, unknown>) => request<{ message: string; request: ServiceRequest }>('/service-requests', { method: 'POST', body }),
   ordersByEmail: (email: string) => request<ServiceRequest[]>(`/service-requests?email=${encodeURIComponent(email)}`),
   updateCustomerOrder: (trackingId: string, body: Record<string, unknown>) => request<{ message: string; request: ServiceRequest }>(`/service-requests/${encodeURIComponent(trackingId)}/customer`, { method: 'PATCH', body }),
-  media: (kind?: 'image' | 'video') => request<MediaAsset[]>(`/media${kind ? `?kind=${kind}` : ''}`),
-  promotions: () => request<Promotion[]>('/promotions'),
-  featuredPromotion: () => request<Promotion | null>('/promotions/featured'),
-  homeContent: () => request<HomeContent>('/home-content'),
+  media: (kind?: 'image' | 'video') => cachedPublicRequest<MediaAsset[]>(`/media${kind ? `?kind=${kind}` : ''}`),
+  promotions: () => cachedPublicRequest<Promotion[]>('/promotions'),
+  featuredPromotion: () => cachedPublicRequest<Promotion | null>('/promotions/featured'),
+  homeContent: () => cachedPublicRequest<HomeContent>('/home-content'),
   subscribeNewsletter: (email: string) => request<{ message: string }>('/newsletter-subscribers', { method: 'POST', body: { email } }),
   sendEnquiry: (body: Record<string, unknown>) => request<{ message: string }>('/contact', { method: 'POST', body }),
   signInAsAdmin: (email: string, password: string) => request<AuthResponse>('/auth/admin-login', { method: 'POST', body: { email, password } }),

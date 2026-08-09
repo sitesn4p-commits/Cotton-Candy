@@ -2,15 +2,13 @@ import { useEffect, useRef, useState, type FormEvent, type PointerEvent, type Re
 import { createPortal } from 'react-dom'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { api, type Promotion } from '../lib/api'
+import { heroImageWidth, optimizedImageUrl } from '../lib/images'
 import { useAuth } from '../lib/useAuth'
 import { useFeedback } from './Feedback'
 
 type Bloom = { id: number; x: number; y: number }
 
-const defaultHeroImages = [
-  'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=1400&q=85',
-  'https://images.unsplash.com/photo-1533294455009-a77b7557d2d1?auto=format&fit=crop&w=600&q=85',
-]
+const defaultHeroImage = 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=1400&q=85'
 
 function preloadImage(source: string) {
   return new Promise<void>((resolve) => {
@@ -30,14 +28,14 @@ export function SiteLayout() {
     if (!isInitialHomeVisit.current) return
 
     let cancelled = false
-    const startedAt = performance.now()
     const finishLoading = async () => {
       const homeContent = await api.homeContent().catch(() => ({ heroMainUrl: '', heroSmallUrl: '', heroSlides: [] }))
       const savedHeroImages = (homeContent.heroSlides || []).map((slide) => slide.url).filter(Boolean)
-      const heroImages = savedHeroImages.length ? savedHeroImages : [homeContent.heroMainUrl || defaultHeroImages[0], homeContent.heroSmallUrl || defaultHeroImages[1]]
-      await Promise.all(heroImages.map(preloadImage))
-      const remainingDisplayTime = Math.max(0, 1150 - (performance.now() - startedAt))
-      if (remainingDisplayTime) await new Promise((resolve) => window.setTimeout(resolve, remainingDisplayTime))
+      const firstHeroImage = savedHeroImages[0] || homeContent.heroMainUrl || defaultHeroImage
+      await Promise.race([
+        preloadImage(optimizedImageUrl(firstHeroImage, heroImageWidth())),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 1100)),
+      ])
       if (!cancelled) setIsHeroLoading(false)
     }
 

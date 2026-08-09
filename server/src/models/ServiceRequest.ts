@@ -29,4 +29,6 @@ const serviceRequestSchema = new Schema({
   marketingUnsubscribedAt: { type: Date },
 }, { timestamps: true })
 
+serviceRequestSchema.index({ email: 1, createdAt: -1 })
+
 export const ServiceRequest = model('ServiceRequest', serviceRequestSchema)
