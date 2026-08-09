@@ -5,16 +5,29 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:admin": "vite --mode admin",
     "build": "tsc -b && vite build",
+    "build:admin": "tsc -b && vite build --mode admin",
+    "android:sync": "npm run build:admin && cap sync android",
+    "android:open": "npm run android:sync && cap open android",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@tauri-apps/api": "^2.11.1",
+    "firebase": "^12.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

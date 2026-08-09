@@ -9,6 +9,7 @@ import { Promotion } from '../models/Promotion.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
 import { verifyUnsubscribeToken } from '../services/email.js'
+import { sendAdminPush } from '../services/push.js'
 
 const router = Router()
 const validTypes = new Set(['service', 'hire'])
@@ -110,6 +111,7 @@ router.post('/service-requests', async (req, res, next) => {
       }
     }
     if (!request) return res.status(503).json({ message: 'Please try your request again.' })
+    void sendAdminPush({ title: 'New booking request', body: `${request.customerName || 'A customer'} requested ${request.offeringName}.`, route: '/manage-cotton-candy/requests' }).catch((error) => console.error('Could not send booking push notification.', error))
     return res.status(201).json({ message: 'Your request has been received.', request })
   } catch (error) { return next(error) }
 })
@@ -143,6 +145,7 @@ router.patch('/service-requests/:trackingId/customer', async (req, res, next) =>
       request.status = 'cancel'
       await request.save()
       await OrderNotification.create({ request: request._id, type: 'cancelled', message: 'Customer cancelled this order online.', details: `${request.customerName} cancelled ${request.offeringName}.` })
+      void sendAdminPush({ title: 'Order cancelled', body: `${request.customerName || 'A customer'} cancelled ${request.offeringName}.`, route: '/manage-cotton-candy/order-notifications' }).catch((error) => console.error('Could not send order push notification.', error))
       return res.json({ message: 'Your order has been cancelled and our team has been notified.', request })
     }
 
@@ -182,6 +185,7 @@ router.patch('/service-requests/:trackingId/customer', async (req, res, next) =>
 
     await request.save()
     await OrderNotification.create({ request: request._id, type: 'updated', message: 'Customer updated this order online.', details: changed.length ? `Updated: ${changed.join(', ')}.` : 'Customer saved their order without changing any details.' })
+    void sendAdminPush({ title: 'Order updated', body: `${request.customerName || 'A customer'} updated ${request.offeringName}.`, route: '/manage-cotton-candy/order-notifications' }).catch((error) => console.error('Could not send order push notification.', error))
     return res.json({ message: 'Your changes have been saved and our team has been notified.', request })
   } catch (error) { return next(error) }
 })
@@ -224,6 +228,7 @@ router.post('/newsletter-subscribers', async (req, res, next) => {
     const existing = await NewsletterSubscriber.findOne({ email })
     if (existing) return res.json({ message: 'You are already on the pretty list.' })
     const subscriber = await NewsletterSubscriber.create({ email })
+    void sendAdminPush({ title: 'New newsletter subscriber', body: `${email} joined the pretty list.`, route: '/manage-cotton-candy/newsletter-subscribers' }).catch((error) => console.error('Could not send newsletter push notification.', error))
     return res.status(201).json({ message: 'You are on the pretty list!', subscriber })
   } catch (error) {
     if (error instanceof Error && error.message.includes('duplicate key')) return res.json({ message: 'You are already on the pretty list.' })
@@ -238,7 +243,8 @@ router.post('/contact', async (req, res, next) => {
     const email = String(req.body.email || '').trim().toLowerCase()
     const message = String(req.body.message || '').trim()
     if (!firstName || !email || !message) return res.status(400).json({ message: 'Please add your name, email address and message.' })
-    await ContactMessage.create({ name: `${firstName} ${lastName}`.trim(), email, phone: String(req.body.phone || '').trim(), eventType: String(req.body.eventType || '').trim(), eventDate: req.body.eventDate || undefined, message })
+    const contactMessage = await ContactMessage.create({ name: `${firstName} ${lastName}`.trim(), email, phone: String(req.body.phone || '').trim(), eventType: String(req.body.eventType || '').trim(), eventDate: req.body.eventDate || undefined, message })
+    void sendAdminPush({ title: 'New contact message', body: `${contactMessage.name || 'A customer'} sent an enquiry.`, route: '/manage-cotton-candy/messages' }).catch((error) => console.error('Could not send contact push notification.', error))
     return res.status(201).json({ message: 'Your message has been sent successfully.' })
   } catch (error) { return next(error) }
 })

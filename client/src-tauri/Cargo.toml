@@ -1,0 +1,25 @@
+[package]
+name = "cotton_candy_admin"
+version = "1.0.0"
+description = "Private Cotton Candy Event Deco management workspace"
+authors = ["Cotton Candy Event Deco"]
+license = "Proprietary"
+repository = "https://github.com/sitesn4p-commits/Cotton-Candy"
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "cotton_candy_admin_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3" }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3" }
+tauri-plugin-log = "2"

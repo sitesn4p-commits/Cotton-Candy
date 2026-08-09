@@ -15,3 +15,14 @@ The customer site runs at `http://localhost:5173`. The private admin workspace i
 ## Admin content
 
 The admin workspace has separate pages for services, hire items, categories, customer request statuses, contact messages, gallery images/videos, promotions and home hero images. All administrator uploads are stored in Cloudinary.
+
+## Admin mobile and desktop apps
+
+The dedicated admin build is installable as a PWA in Chrome or Edge. Sign in to the deployed admin workspace, then use **Install app** in the sidebar (or the browser's **Install app / Add to Home screen** command). This provides the fastest Windows and Android admin app experience.
+
+The repository also contains native wrappers:
+
+- Android Capacitor project: `client/android`
+- Windows Tauri project: `client/src-tauri`
+
+See `docs/admin-apps.md` for Firebase push notification setup and the exact APK/Windows installer commands.

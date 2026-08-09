@@ -9,7 +9,16 @@ import { authRouter } from './routes/auth.js'
 import { publicRouter } from './routes/public.js'
 
 const app = express()
-const clientOrigins = [...new Set([...env.clientUrls, 'http://localhost:5173', 'http://127.0.0.1:5173'])]
+const clientOrigins = [...new Set([
+  ...env.clientUrls,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost',
+  'https://localhost',
+  'capacitor://localhost',
+  'tauri://localhost',
+  'https://tauri.localhost',
+])]
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(cors({ origin: clientOrigins, methods: ['GET', 'POST', 'PATCH', 'DELETE'], allowedHeaders: ['Content-Type', 'Authorization'] }))

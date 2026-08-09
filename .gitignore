@@ -1,5 +1,13 @@
 node_modules/
 dist/
 .env
+client/.env.admin
+client/android/.gradle/
+client/android/app/build/
+client/android/app/src/main/assets/public/
+client/android/app/src/main/assets/capacitor.config.json
+client/android/app/src/main/assets/capacitor.plugins.json
 server/uploads/
+client/android/app/google-services.json
+firebase-service-account.json
 *.tsbuildinfo

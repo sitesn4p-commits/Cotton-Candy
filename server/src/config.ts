@@ -25,4 +25,6 @@ export const env = {
   resendBookingTemplateId: process.env.RESEND_BOOKING_TEMPLATE_ID || 'cotton-candy-booking-confirmation',
   resendCompletionTemplateId: process.env.RESEND_COMPLETION_TEMPLATE_ID || '',
   resendPromotionTemplateId: process.env.RESEND_PROMOTION_TEMPLATE_ID || '',
+  adminAppUrl: (process.env.ADMIN_CLIENT_URL || '').replace(/\/$/, ''),
+  firebaseServiceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
 }

@@ -1,0 +1,31 @@
+{
+  "id": "/manage-cotton-candy/sign-in",
+  "name": "Cotton Candy Admin",
+  "short_name": "Cotton Candy",
+  "description": "Private Cotton Candy Event Deco management workspace.",
+  "start_url": "/manage-cotton-candy/sign-in",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f4f3",
+  "theme_color": "#3e443b",
+  "icons": [
+    {
+      "src": "/cotton-candy-logo-web.png",
+      "sizes": "1563x1563",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Orders",
+      "short_name": "Orders",
+      "url": "/manage-cotton-candy/requests"
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "url": "/manage-cotton-candy/messages"
+    }
+  ]
+}

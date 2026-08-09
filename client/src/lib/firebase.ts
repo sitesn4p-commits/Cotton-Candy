@@ -1,0 +1,29 @@
+import { getApp, getApps, initializeApp } from 'firebase/app'
+import { getMessaging, getToken, onMessage, type MessagePayload } from 'firebase/messaging'
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+}
+
+const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || ''
+
+export function isWebPushConfigured() {
+  return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId && firebaseConfig.appId && vapidKey)
+}
+
+export async function registerWebPush(onForegroundMessage: (payload: MessagePayload) => void) {
+  if (!isWebPushConfigured() || !('serviceWorker' in navigator) || !('Notification' in window)) return null
+  const permission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
+  if (permission !== 'granted') return { token: null, unsubscribe: () => undefined }
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
+  const messaging = getMessaging(app)
+  const registration = await navigator.serviceWorker.ready
+  const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
+  return { token, unsubscribe: onMessage(messaging, onForegroundMessage) }
+}
