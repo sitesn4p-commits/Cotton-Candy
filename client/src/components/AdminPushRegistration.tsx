@@ -81,8 +81,15 @@ export function AdminPushRegistration() {
     try {
       if (Capacitor.isNativePlatform()) await enableNativePush(true)
       else await enableWebPush(true)
-    } catch {
-      notify({ tone: 'error', title: 'Notifications could not be enabled', message: 'Use the latest Chrome or Edge, then try again.' })
+    } catch (error) {
+      const unsupportedBrowser = error instanceof Error && error.message.includes('unsupported-browser')
+      notify({
+        tone: 'error',
+        title: 'Notifications could not be enabled',
+        message: unsupportedBrowser
+          ? 'Open the admin panel directly in Chrome or Edge. In-app previews cannot receive web notifications.'
+          : 'Refresh the admin app, then click Enable notifications again.',
+      })
     } finally {
       setIsWorking(false)
     }

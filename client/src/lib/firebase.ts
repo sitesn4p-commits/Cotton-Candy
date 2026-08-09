@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { getMessaging, getToken, onMessage, type MessagePayload } from 'firebase/messaging'
+import { deleteToken, getMessaging, getToken, isSupported, onMessage, type MessagePayload } from 'firebase/messaging'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -18,12 +18,19 @@ export function isWebPushConfigured() {
 
 export async function registerWebPush(onForegroundMessage: (payload: MessagePayload) => void) {
   if (!isWebPushConfigured() || !('serviceWorker' in navigator) || !('Notification' in window)) return null
+  if (!await isSupported()) throw new Error('unsupported-browser')
   const permission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
   if (permission !== 'granted') return { token: null, unsubscribe: () => undefined }
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
   const messaging = getMessaging(app)
   const registration = await navigator.serviceWorker.ready
-  const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
+  let token: string
+  try {
+    token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
+  } catch {
+    await deleteToken(messaging).catch(() => undefined)
+    token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration })
+  }
   return { token, unsubscribe: onMessage(messaging, onForegroundMessage) }
 }
