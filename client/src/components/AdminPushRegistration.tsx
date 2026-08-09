@@ -36,7 +36,11 @@ export function AdminPushRegistration() {
     }
 
     const registration = await registerWebPush((payload) => {
-      notify({ tone: 'info', title: payload.notification?.title || 'New dashboard update', message: payload.notification?.body })
+      notify({
+        tone: 'info',
+        title: payload.notification?.title || payload.data?.title || 'New dashboard update',
+        message: payload.notification?.body || payload.data?.body,
+      })
     })
 
     if (!registration?.token) {

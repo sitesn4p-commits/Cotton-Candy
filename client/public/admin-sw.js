@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cotton-candy-admin-v1'
+const CACHE_NAME = 'cotton-candy-admin-v2'
 const FIREBASE_CONFIG = null
 const APP_SHELL = [
   '/',
@@ -55,8 +55,8 @@ if (FIREBASE_CONFIG?.apiKey) {
   firebase.initializeApp(FIREBASE_CONFIG)
   firebase.messaging().onBackgroundMessage((payload) => {
     const route = payload.data?.route || '/manage-cotton-candy/requests'
-    return self.registration.showNotification(payload.notification?.title || 'Cotton Candy Admin', {
-      body: payload.notification?.body || 'There is a new update in your dashboard.',
+    return self.registration.showNotification(payload.notification?.title || payload.data?.title || 'Cotton Candy Admin', {
+      body: payload.notification?.body || payload.data?.body || 'There is a new update in your dashboard.',
       icon: '/cotton-candy-logo-web.png',
       data: { route },
     })

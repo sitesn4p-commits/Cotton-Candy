@@ -41,25 +41,44 @@ export async function sendAdminPush({ title, body, route }: AdminPush) {
   const app = firebaseApp()
   if (!app) return { sent: 0, skipped: true }
 
-  const devices = await AdminDevice.find({ active: true }).select('token')
+  const devices = await AdminDevice.find({ active: true }).select('token platform')
   if (!devices.length) return { sent: 0, skipped: true }
 
-  const tokens = devices.map((device) => device.token)
   const notificationLink = env.adminAppUrl ? `${env.adminAppUrl}${route}` : undefined
-  const response = await getMessaging(app).sendEachForMulticast({
-    tokens,
-    notification: { title, body },
-    data: { route },
-    android: { priority: 'high' },
-    webpush: {
-      notification: { icon: `${env.websiteUrl}/cotton-candy-logo-web.png` },
-      ...(notificationLink ? { fcmOptions: { link: notificationLink } } : {}),
-    },
-  })
+  const data = { route, title, body }
+  const webTokens = devices.filter((device) => device.platform === 'web').map((device) => device.token)
+  const nativeTokens = devices.filter((device) => device.platform !== 'web').map((device) => device.token)
+  const responses: Array<{ tokens: string[], results: Awaited<ReturnType<ReturnType<typeof getMessaging>['sendEachForMulticast']>>['responses'] }> = []
 
-  const expiredTokens = response.responses
+  if (webTokens.length) {
+    const response = await getMessaging(app).sendEachForMulticast({
+      tokens: webTokens,
+      data,
+      webpush: {
+        headers: { Urgency: 'high', TTL: '86400' },
+        ...(notificationLink ? { fcmOptions: { link: notificationLink } } : {}),
+      },
+    })
+    responses.push({ tokens: webTokens, results: response.responses })
+  }
+
+  if (nativeTokens.length) {
+    const response = await getMessaging(app).sendEachForMulticast({
+      tokens: nativeTokens,
+      notification: { title, body },
+      data,
+      android: { priority: 'high' },
+    })
+    responses.push({ tokens: nativeTokens, results: response.responses })
+  }
+
+  const expiredTokens = responses.flatMap(({ tokens, results }) => results
     .map((result, index) => (result.success || !isExpiredToken(result.error?.code) ? null : tokens[index]))
     .filter((token): token is string => Boolean(token))
+  )
   if (expiredTokens.length) await AdminDevice.updateMany({ token: { $in: expiredTokens } }, { $set: { active: false } })
-  return { sent: response.successCount, failed: response.failureCount }
+  return {
+    sent: responses.reduce((total, response) => total + response.results.filter((result) => result.success).length, 0),
+    failed: responses.reduce((total, response) => total + response.results.filter((result) => !result.success).length, 0),
+  }
 }
