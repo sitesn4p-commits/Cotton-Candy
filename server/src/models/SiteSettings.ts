@@ -6,6 +6,10 @@ const siteSettingsSchema = new Schema({
   heroMainPublicId: { type: String, default: '' },
   heroSmallUrl: { type: String, default: '' },
   heroSmallPublicId: { type: String, default: '' },
+  heroSlides: [{
+    url: { type: String, required: true },
+    publicId: { type: String, default: '' },
+  }],
   introMainUrl: { type: String, default: '' },
   introMainPublicId: { type: String, default: '' },
   introSmallUrl: { type: String, default: '' },

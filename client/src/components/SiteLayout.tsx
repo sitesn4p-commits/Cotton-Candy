@@ -32,8 +32,9 @@ export function SiteLayout() {
     let cancelled = false
     const startedAt = performance.now()
     const finishLoading = async () => {
-      const homeContent = await api.homeContent().catch(() => ({ heroMainUrl: '', heroSmallUrl: '' }))
-      const heroImages = [homeContent.heroMainUrl || defaultHeroImages[0], homeContent.heroSmallUrl || defaultHeroImages[1]]
+      const homeContent = await api.homeContent().catch(() => ({ heroMainUrl: '', heroSmallUrl: '', heroSlides: [] }))
+      const savedHeroImages = (homeContent.heroSlides || []).map((slide) => slide.url).filter(Boolean)
+      const heroImages = savedHeroImages.length ? savedHeroImages : [homeContent.heroMainUrl || defaultHeroImages[0], homeContent.heroSmallUrl || defaultHeroImages[1]]
       await Promise.all(heroImages.map(preloadImage))
       const remainingDisplayTime = Math.max(0, 1150 - (performance.now() - startedAt))
       if (remainingDisplayTime) await new Promise((resolve) => window.setTimeout(resolve, remainingDisplayTime))

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useFeedback } from '../components/Feedback'
-import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type HomeContent, type MediaAsset, type NewsletterSubscriber, type Offering, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
+import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type HomeContent, type MediaAsset, type NewsletterSubscriber, type Offering, type OrderNotification, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 
 const emptyDashboard: AdminDashboard = { totals: { requests: 0, pending: 0, unreadMessages: 0, media: 0 }, requests: [], messages: [], offerings: [], promotions: [] }
-const statusOptions: RequestStatus[] = ['pending', 'active', 'complete', 'cancel']
 
 function useAdminToken() { const { token } = useAuth(); return token || '' }
 function EmptyState({ children }: { children: ReactNode }) { return <p className="empty-state">{children}</p> }
@@ -120,36 +119,22 @@ export function AdminRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null)
   const [activationRequest, setActivationRequest] = useState<ServiceRequest | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const load = useCallback(() => api.adminServiceRequests(token).then((items) => { setRequests(items.filter((item) => item.status !== 'complete')); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load requests.'))), [token])
+  const load = useCallback(() => api.adminServiceRequests(token, 'pending').then((items) => { setRequests(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load requests.'))), [token])
   useEffect(() => { void load() }, [load])
 
-  const changeStatus = async (request: ServiceRequest, status: RequestStatus) => {
-    try {
-      const updatedRequest = await api.updateServiceRequestStatus(token, request._id, status)
-      setRequests((current) => current.map((item) => item._id === updatedRequest._id ? updatedRequest : item).filter((item) => item.status !== 'complete'))
-      setSelectedRequest((current) => current?._id === updatedRequest._id ? updatedRequest : current)
-      notify({ title: 'Order status updated', message: `${request.offeringName} is now marked ${status}.` })
-      return updatedRequest
-    } catch (reason) { setError(messageFor(reason, 'Unable to update request.')); return null }
-  }
-
-  const requestStatusChange = (request: ServiceRequest, status: RequestStatus) => {
-    if (status === 'active' && request.status !== 'active') {
-      setActivationRequest(request)
-      return
-    }
-    void changeStatus(request, status)
-  }
-
   const activateAndSendEmail = async (request: ServiceRequest) => {
-    const activatedRequest = await changeStatus(request, 'active')
-    if (!activatedRequest) return false
     try {
-      await api.sendActivationEmail(token, activatedRequest._id)
-      notify({ title: 'Order active & customer notified', message: `A booking confirmation was sent to ${activatedRequest.email}.` })
+      const result = await api.activateServiceRequest(token, request._id)
+      setRequests((current) => current.filter((item) => item._id !== result.request._id))
+      setSelectedRequest(null)
+      if (result.emailSent) notify({ title: 'Order active & customer notified', message: `An active order notice was sent to ${result.request.email}.` })
+      else {
+        setError(result.message)
+        notify({ tone: 'error', title: 'Order active, email needs attention', message: result.message })
+      }
       return true
     } catch (reason) {
-      setError(`The order is active, but the confirmation email was not sent: ${messageFor(reason, 'Email delivery failed.')}`)
+      setError(messageFor(reason, 'Unable to activate this order.'))
       return false
     }
   }
@@ -163,18 +148,82 @@ export function AdminRequestsPage() {
       notify({ title: 'Request deleted', message: `${request.offeringName} has been removed from your order list.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to delete request.')) }
   }
-  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Customer orders</p><h1>Service & hire <em>requests.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><button className="request-admin-summary" type="button" onClick={() => setSelectedRequest(request)}><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b>{request.type === 'hire' ? ` · ${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : ''}</p><small>{request.email}{request.promotionTitle ? ` · ${request.promotionTitle} (${request.discountPercent}% off)` : ''}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small><span>View full order →</span></button><div className="request-admin-actions"><select aria-label={`Change status for ${request.offeringName}`} className={`request-status ${request.status}`} value={request.status} onChange={(event) => requestStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><button type="button" onClick={() => void deleteRequest(request)}>Delete</button></div></article>)}</div> : <EmptyState>Customer service and hire requests will appear here.</EmptyState>}</section>{selectedRequest ? <OrderDetailDialog request={selectedRequest} onClose={() => setSelectedRequest(null)} onStatusChange={requestStatusChange} onDelete={deleteRequest} /> : null}{activationRequest ? <ActivationEmailDialog request={activationRequest} onClose={() => setActivationRequest(null)} onActivateWithoutEmail={async () => Boolean(await changeStatus(activationRequest, 'active'))} onActivateAndSendEmail={async () => activateAndSendEmail(activationRequest)} /> : null}</section>
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Customer orders</p><h1>New service & hire <em>requests.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><button className="request-admin-summary" type="button" onClick={() => setSelectedRequest(request)}><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b>{request.type === 'hire' ? ` · ${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : ''}</p><small>{request.email}{request.promotionTitle ? ` · ${request.promotionTitle} (${request.discountPercent}% off)` : ''}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small><span>View full order →</span></button><div className="request-admin-actions"><button className="admin-button" type="button" onClick={() => setActivationRequest(request)}>Activate order</button><button type="button" onClick={() => void deleteRequest(request)}>Delete</button></div></article>)}</div> : <EmptyState>New customer service and hire requests will appear here.</EmptyState>}</section>{selectedRequest ? <OrderDetailDialog request={selectedRequest} onClose={() => setSelectedRequest(null)} onDelete={deleteRequest} /> : null}{activationRequest ? <ActivationEmailDialog request={activationRequest} onClose={() => setActivationRequest(null)} onActivate={() => activateAndSendEmail(activationRequest)} /> : null}</section>
+}
+
+function ActiveOrderDialog({ request, onClose, onAdvancePayment, onComplete }: { request: ServiceRequest; onClose: () => void; onAdvancePayment: () => Promise<void>; onComplete: () => Promise<void> }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const eventDate = request.eventDate ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'long' }).format(new Date(request.eventDate)) : 'Not provided'
+  const recordAdvance = async () => {
+    setSaving(true); setError(null)
+    try { await onAdvancePayment() } catch (reason) { setError(messageFor(reason, 'Unable to record the advance payment.')) } finally { setSaving(false) }
+  }
+  const complete = async () => {
+    setSaving(true); setError(null)
+    try { await onComplete(); onClose() } catch (reason) { setError(messageFor(reason, 'Unable to complete this order.')) } finally { setSaving(false) }
+  }
+  return <Dialog title="Active order details" onClose={onClose}><div className="order-detail-topline"><div><p className="eyebrow">{request.trackingId || 'Active order'}</p><h3>{request.offeringName}</h3></div><span className="request-status active">active</span></div><div className="order-detail-grid"><section><p className="order-detail-label">Customer</p><strong>{request.customerName || 'Customer'}</strong><a href={`mailto:${request.email}`}>{request.email || 'No email supplied'}</a>{request.phone ? <a href={`tel:${request.phone}`}>{request.phone}</a> : <small>No phone number supplied</small>}</section><section><p className="order-detail-label">Event</p><strong>{request.eventType || 'Celebration details to confirm'}</strong><span>{eventDate}</span><small>{request.type === 'hire' ? `${request.hireDays} hire day${request.hireDays === 1 ? '' : 's'}` : 'Event styling service'}</small></section><section><p className="order-detail-label">Order value</p><strong>{formatLkr(request.totalPrice)}</strong><span>{request.promotionTitle || 'No promotion applied'}</span><small>Reference {request.trackingId || 'not available'}</small></section><section><p className="order-detail-label">Payment progress</p><strong>{request.advancePaymentComplete ? 'Advance payment recorded' : 'Advance payment pending'}</strong><span>{request.advancePaymentCompletedAt ? `Recorded ${new Date(request.advancePaymentCompletedAt).toLocaleDateString()}` : 'Mark this once the advance arrives.'}</span><small>Full payment can be completed after the advance is recorded.</small></section></div>{request.notes ? <section className="order-detail-notes"><p className="order-detail-label">Customer notes</p><p>{request.notes}</p></section> : null}<section className="active-payment-card"><p className="eyebrow">Payment workflow</p><h3>{request.advancePaymentComplete ? 'Ready for final payment.' : 'Waiting for the advance payment.'}</h3><p>{request.advancePaymentComplete ? 'Once the full payment is received, mark this order complete. The customer will receive the completion email automatically.' : 'Mark the advance as received first. This does not send a completion email.'}</p><div className="order-detail-actions">{!request.advancePaymentComplete ? <button className="admin-button" type="button" disabled={saving} onClick={() => void recordAdvance()}>{saving ? 'Saving…' : 'Mark advance payment complete'}</button> : <button className="admin-button" type="button" disabled={saving} onClick={() => void complete()}>{saving ? 'Completing…' : 'Mark full payment & complete order'}</button>}<button className="admin-secondary-button" type="button" onClick={onClose} disabled={saving}>Close</button></div>{error ? <p className="campaign-error">{error}</p> : null}</section></Dialog>
+}
+
+export function AdminActiveOrdersPage() {
+  const token = useAdminToken()
+  const { confirm, notify } = useFeedback()
+  const [requests, setRequests] = useState<ServiceRequest[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const load = useCallback(() => api.adminServiceRequests(token, 'active').then((items) => { setRequests(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load active orders.'))), [token])
+  useEffect(() => { void load() }, [load])
+  const replaceRequest = (updatedRequest: ServiceRequest) => {
+    setRequests((current) => updatedRequest.status === 'active' ? current.map((request) => request._id === updatedRequest._id ? updatedRequest : request) : current.filter((request) => request._id !== updatedRequest._id))
+    setSelectedRequest((current) => current?._id === updatedRequest._id && updatedRequest.status === 'active' ? updatedRequest : null)
+  }
+  const recordAdvance = async (request: ServiceRequest) => {
+    if (!await confirm({ title: 'Record advance payment?', message: `Mark the advance payment as received for ${request.customerName || 'this customer'}. No completion email will be sent yet.`, confirmLabel: 'Record advance', tone: 'info' })) return
+    const updated = await api.updateAdvancePayment(token, request._id, true)
+    replaceRequest(updated)
+    notify({ title: 'Advance payment recorded', message: `${request.offeringName} is ready for final payment.` })
+  }
+  const complete = async (request: ServiceRequest) => {
+    if (!await confirm({ title: 'Complete this order?', message: `This records the full payment for ${request.customerName || 'this customer'} and emails them that their order is complete.`, confirmLabel: 'Complete & email', tone: 'info' })) return
+    const result = await api.completeServiceRequest(token, request._id)
+    replaceRequest(result.request)
+    if (result.emailSent) notify({ title: 'Order complete & customer emailed', message: `${result.request.offeringName} is now in order history.` })
+    else {
+      setError(result.message)
+      notify({ tone: 'error', title: 'Order complete, email needs attention', message: result.message })
+    }
+  }
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Payment follow-up</p><h1>Active <em>orders.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card admin-table-card">{requests.length ? <div className="request-admin-list">{requests.map((request) => <article key={request._id}><button className="request-admin-summary" type="button" onClick={() => setSelectedRequest(request)}><strong>{request.customerName}</strong><p>{request.offeringName} · <b>{formatLkr(request.totalPrice)}</b></p><small>{request.email}{request.eventDate ? ` · ${new Date(request.eventDate).toLocaleDateString()}` : ''}</small><span>View payment progress →</span></button><div className="active-order-labels"><span className="request-status active">active</span><small className={request.advancePaymentComplete ? 'payment-complete' : 'payment-pending'}>{request.advancePaymentComplete ? 'Advance paid' : 'Advance pending'}</small></div></article>)}</div> : <EmptyState>Active orders will appear here after you activate a customer request.</EmptyState>}</section>{selectedRequest ? <ActiveOrderDialog request={selectedRequest} onClose={() => setSelectedRequest(null)} onAdvancePayment={() => recordAdvance(selectedRequest)} onComplete={() => complete(selectedRequest)} /> : null}</section>
+}
+
+export function AdminOrderNotificationsPage() {
+  const token = useAdminToken()
+  const { notify } = useFeedback()
+  const [notifications, setNotifications] = useState<OrderNotification[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const load = useCallback(() => api.adminOrderNotifications(token).then((items) => { setNotifications(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load order notifications.'))), [token])
+  useEffect(() => { void load() }, [load])
+  const markRead = async (notification: OrderNotification) => {
+    try {
+      const updated = await api.markOrderNotificationRead(token, notification._id, !notification.read)
+      setNotifications((current) => current.map((item) => item._id === updated._id ? updated : item))
+      notify({ title: updated.read ? 'Marked as read' : 'Marked unread', message: 'The order notification was updated.' })
+    } catch (reason) { setError(messageFor(reason, 'Unable to update this notification.')) }
+  }
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Customer order updates</p><h1>Order <em>notifications.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card">{notifications.length ? <div className="order-notification-list">{notifications.map((notification) => { const request = typeof notification.request === 'string' ? null : notification.request; return <article className={notification.read ? '' : 'unread'} key={notification._id}><div><span className={`request-status ${notification.type === 'cancelled' ? 'cancel' : 'active'}`}>{notification.type}</span><strong>{notification.message}</strong><p>{notification.details}</p>{request ? <small>{request.trackingId} · {request.customerName || 'Customer'} · {request.offeringName}</small> : <small>The original order is no longer available.</small>}</div><footer><span>{new Date(notification.createdAt).toLocaleString()}</span><button type="button" onClick={() => void markRead(notification)}>{notification.read ? 'Mark unread' : 'Mark read'}</button></footer></article> })}</div> : <EmptyState>Customer booking edits and cancellations will appear here.</EmptyState>}</section></section>
 }
 
 type PromotionCampaignActions = { promotions: Promotion[]; onConsentChange: (request: ServiceRequest, marketingConsent: boolean) => Promise<void>; onSend: (request: ServiceRequest, promotionId: string, subject: string, message: string) => Promise<void> }
 
-function OrderDetailDialog({ request, onClose, onStatusChange, onDelete, campaign }: { request: ServiceRequest; onClose: () => void; onStatusChange: (request: ServiceRequest, status: RequestStatus) => void; onDelete: (request: ServiceRequest) => Promise<void>; campaign?: PromotionCampaignActions }) {
+function OrderDetailDialog({ request, onClose, onStatusChange, onDelete, campaign }: { request: ServiceRequest; onClose: () => void; onStatusChange?: (request: ServiceRequest, status: RequestStatus) => void; onDelete: (request: ServiceRequest) => Promise<void>; campaign?: PromotionCampaignActions }) {
   const eventDate = request.eventDate ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'long' }).format(new Date(request.eventDate)) : 'Not provided'
   const submittedAt = new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt))
   const itemLabel = request.type === 'hire' ? 'Hire item' : 'Service'
   const emailSection = campaign ? <PromotionEmailComposer request={request} campaign={campaign} /> : <ActivationEmailPreview request={request} />
 
-  return <Dialog title="Order details" onClose={onClose}><div className="order-detail-topline"><div><p className="eyebrow">{request.trackingId || 'Customer request'}</p><h3>{request.offeringName}</h3></div><span className={`request-status ${request.status}`}>{request.status}</span></div><div className="order-detail-grid"><section><p className="order-detail-label">Customer</p><strong>{request.customerName || 'Customer'}</strong><a href={`mailto:${request.email}`}>{request.email || 'No email supplied'}</a>{request.phone ? <a href={`tel:${request.phone}`}>{request.phone}</a> : <small>No phone number supplied</small>}</section><section><p className="order-detail-label">Event</p><strong>{request.eventType || 'Celebration details to confirm'}</strong><span>{eventDate}</span><small>Submitted {submittedAt}</small></section><section><p className="order-detail-label">Booking</p><strong>{itemLabel}</strong><span>{request.type === 'hire' ? `${request.hireDays} hire day${request.hireDays === 1 ? '' : 's'}` : 'Tailored event service'}</span><small>Price per day/service: {formatLkr(request.unitPrice)}</small></section><section><p className="order-detail-label">Order status</p><select className={`request-status ${request.status}`} value={request.status} onChange={(event) => onStatusChange(request, event.target.value as RequestStatus)}>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select><small>Update this as the booking progresses.</small></section></div>{request.notes ? <section className="order-detail-notes"><p className="order-detail-label">Customer notes</p><p>{request.notes}</p></section> : null}<section className="order-price-summary"><div><span>Subtotal</span><strong>{formatLkr(request.subtotal)}</strong></div>{request.discountAmount > 0 ? <div><span>{request.promotionTitle || 'Promotion'} {request.discountPercent ? `(${request.discountPercent}% off)` : ''}</span><strong>−{formatLkr(request.discountAmount)}</strong></div> : null}<div className="order-price-total"><span>Total booking value</span><strong>{formatLkr(request.totalPrice)}</strong></div></section>{emailSection}<div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={() => void onDelete(request)}>Delete order</button><button className="admin-button" type="button" onClick={onClose}>Done</button></div></Dialog>
+  const allowedStatuses: RequestStatus[] = request.status === 'active' ? ['active', 'cancel'] : request.status === 'pending' ? ['pending', 'cancel'] : [request.status]
+  return <Dialog title="Order details" onClose={onClose}><div className="order-detail-topline"><div><p className="eyebrow">{request.trackingId || 'Customer request'}</p><h3>{request.offeringName}</h3></div><span className={`request-status ${request.status}`}>{request.status}</span></div><div className="order-detail-grid"><section><p className="order-detail-label">Customer</p><strong>{request.customerName || 'Customer'}</strong><a href={`mailto:${request.email}`}>{request.email || 'No email supplied'}</a>{request.phone ? <a href={`tel:${request.phone}`}>{request.phone}</a> : <small>No phone number supplied</small>}</section><section><p className="order-detail-label">Event</p><strong>{request.eventType || 'Celebration details to confirm'}</strong><span>{eventDate}</span><small>Submitted {submittedAt}</small></section><section><p className="order-detail-label">Booking</p><strong>{itemLabel}</strong><span>{request.type === 'hire' ? `${request.hireDays} hire day${request.hireDays === 1 ? '' : 's'}` : 'Tailored event service'}</span><small>Price per day/service: {formatLkr(request.unitPrice)}</small></section><section><p className="order-detail-label">Order status</p>{onStatusChange ? <select className={`request-status ${request.status}`} value={request.status} onChange={(event) => onStatusChange(request, event.target.value as RequestStatus)}>{allowedStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select> : <span className={`request-status ${request.status}`}>{request.status}</span>}<small>{request.status === 'complete' ? 'Completed orders stay in history.' : 'Activation and completion use the dedicated order workflow.'}</small></section></div>{request.notes ? <section className="order-detail-notes"><p className="order-detail-label">Customer notes</p><p>{request.notes}</p></section> : null}<section className="order-price-summary"><div><span>Subtotal</span><strong>{formatLkr(request.subtotal)}</strong></div>{request.discountAmount > 0 ? <div><span>{request.promotionTitle || 'Promotion'} {request.discountPercent ? `(${request.discountPercent}% off)` : ''}</span><strong>−{formatLkr(request.discountAmount)}</strong></div> : null}<div className="order-price-total"><span>Total booking value</span><strong>{formatLkr(request.totalPrice)}</strong></div></section>{emailSection}<div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={() => void onDelete(request)}>Delete order</button><button className="admin-button" type="button" onClick={onClose}>Done</button></div></Dialog>
 }
 
 function ActivationEmailPreview({ request }: { request: ServiceRequest }) {
@@ -186,28 +235,28 @@ function ActivationEmailPreview({ request }: { request: ServiceRequest }) {
     setSending(true); setError(null)
     try {
       await api.sendActivationEmail(token, request._id)
-      notify({ title: 'Activation email sent', message: `Booking confirmation was sent to ${request.email}.` })
+      notify({ title: 'Active order notice sent', message: `An advance payment contact notice was sent to ${request.email}.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to send the activation email.')) } finally { setSending(false) }
   }
 
-  return <section className="order-email-preview"><div><span aria-hidden="true">✉</span><div><p className="order-detail-label">Activation email</p><h3>{request.status === 'active' ? 'Ready to notify the customer' : 'Sent when this order becomes active'}</h3><p>An elegant booking confirmation will go to {request.email || 'the customer'} with the order details and active status.</p></div></div><button type="button" disabled={request.status !== 'active' || sending} onClick={() => void send()}>{sending ? 'Sending…' : request.status === 'active' ? 'Send activation email' : 'Set active first'}</button>{error ? <p className="campaign-error">{error}</p> : null}</section>
+  return <section className="order-email-preview"><div><span aria-hidden="true">✉</span><div><p className="order-detail-label">Active order notice</p><h3>{request.status === 'active' ? 'Ready to contact the customer' : 'Sent when this order becomes active'}</h3><p>The customer is told their order is active and that your team will contact them to discuss the advance payment.</p></div></div><button type="button" disabled={request.status !== 'active' || sending} onClick={() => void send()}>{sending ? 'Sending…' : request.status === 'active' ? 'Resend active notice' : 'Set active first'}</button>{error ? <p className="campaign-error">{error}</p> : null}</section>
 }
 
-function ActivationEmailDialog({ request, onClose, onActivateWithoutEmail, onActivateAndSendEmail }: { request: ServiceRequest; onClose: () => void; onActivateWithoutEmail: () => Promise<boolean>; onActivateAndSendEmail: () => Promise<boolean> }) {
+function ActivationEmailDialog({ request, onClose, onActivate }: { request: ServiceRequest; onClose: () => void; onActivate: () => Promise<boolean> }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const activate = async (withEmail: boolean) => {
+  const activate = async () => {
     setSaving(true)
     setError(null)
     try {
-      const completed = await (withEmail ? onActivateAndSendEmail() : onActivateWithoutEmail())
+      const completed = await onActivate()
       if (completed) onClose()
-      else setError(withEmail ? 'The order is active, but the confirmation email could not be sent. You can retry from the order details after checking email delivery.' : 'The order could not be made active. Please try again.')
+      else setError('The order could not be made active. Please try again.')
     } finally { setSaving(false) }
   }
 
-  return <Dialog title="Make this order active?" onClose={onClose}><section className="activation-email-dialog"><span aria-hidden="true">✦</span><p>{request.customerName || 'This customer'} will see the booking as active when they search using {request.email || 'their email address'}.</p><div className="activation-email-preview"><p className="order-detail-label">Customer email notice</p><strong>“Your Cotton Candy booking is now active.”</strong><small>Send the confirmation with the booking details straight after activating this order.</small></div><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={onClose} disabled={saving}>Keep pending</button><button className="admin-secondary-button" type="button" onClick={() => void activate(false)} disabled={saving}>Activate without email</button><button className="admin-button" type="button" onClick={() => void activate(true)} disabled={saving}>{saving ? 'Activating…' : 'Activate & send email'}</button></div>{error ? <p className="campaign-error">{error}</p> : null}</section></Dialog>
+  return <Dialog title="Make this order active?" onClose={onClose}><section className="activation-email-dialog"><span aria-hidden="true">✦</span><p>{request.customerName || 'This customer'} will see the booking as active when they search using {request.email || 'their email address'}.</p><div className="activation-email-preview"><p className="order-detail-label">Customer email notice</p><strong>“Your Cotton Candy order is now active.”</strong><small>They will be told that your team will contact them to discuss the advance payment and next steps.</small></div><div className="order-detail-actions"><button className="admin-secondary-button" type="button" onClick={onClose} disabled={saving}>Keep pending</button><button className="admin-button" type="button" onClick={() => void activate()} disabled={saving}>{saving ? 'Activating…' : 'Activate & send notice'}</button></div>{error ? <p className="campaign-error">{error}</p> : null}</section></Dialog>
 }
 
 function promotionSubject(promotion: Promotion) { return `${promotion.title} — Cotton Candy Event Deco` }
@@ -502,7 +551,7 @@ export function AdminPromotionsPage() {
   return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Website launch promotion</p><h1>Make an offer <em>shine.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Create promotion"><form className="admin-form-grid" onSubmit={submit}><label>Title<input name="title" required placeholder="e.g. Winter party package" /></label><label>Discount (%)<input name="discountPercent" type="number" min="0" max="100" step="1" defaultValue="0" required /></label><label>Applies to<select name="appliesTo" defaultValue="all"><option value="all">All services & hire</option><option value="service">Services only</option><option value="hire">Hire only</option></select></label><label className="admin-full">Description<textarea name="description" required placeholder="Tell visitors about the offer" /></label><label className="file-input">Desktop artwork<input name="desktopImage" type="file" accept="image/*" required /></label><label className="file-input">Mobile artwork<input name="mobileImage" type="file" accept="image/*" required /></label><label className="admin-check admin-full"><input name="showOnLoad" type="checkbox" /> Show this full-screen when the website opens</label><button className="admin-button" type="submit">Publish promotion</button></form></Panel><Panel title="Your promotions">{promotions.length ? <div className="admin-promotion-list">{promotions.map((promotion) => <article key={promotion._id}><img src={promotion.desktopImageUrl} alt={promotion.title} /><div><strong>{promotion.title}</strong><p>{promotion.description}</p><span>{promotion.discountPercent ? `${promotion.discountPercent}% off ${promotion.appliesTo === 'all' ? 'all items' : `${promotion.appliesTo} items`}` : 'Display-only promotion'} · {promotion.showOnLoad ? 'Opening promotion' : 'Promotion page only'}</span></div><div className="admin-row-actions">{!promotion.showOnLoad ? <button type="button" onClick={() => void showOnLoad(promotion)}>Show on open</button> : null}<button type="button" onClick={() => void removePromotion(promotion)}>Remove</button></div></article>)}</div> : <EmptyState>Upload a promotion for your public promotions page.</EmptyState>}</Panel></div></section>
 }
 
-export function AdminHomeContentPage() {
+export function LegacyAdminHomeContentPage() {
   const token = useAdminToken()
   const { notify } = useFeedback()
   const [content, setContent] = useState<HomeContent | null>(null)
@@ -519,6 +568,58 @@ export function AdminHomeContentPage() {
     } catch (reason) { setError(messageFor(reason, 'Unable to update home page images.')) }
   }
   return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Home page content</p><h1>Your first <em>beautiful impression.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Update hero images"><form className="admin-form-grid" onSubmit={(event) => void submit(event, 'Your new hero artwork is now live on the website.')}><label className="file-input admin-full">Main image — right of “Make your day”<input name="heroMain" type="file" accept="image/*" /></label><label className="file-input admin-full">Small overlay image<input name="heroSmall" type="file" accept="image/*" /></label><p className="admin-help admin-full">Choose one or both images. The existing image remains if no replacement is selected.</p><button className="admin-button" type="submit">Update hero images</button></form></Panel><Panel title="Current hero artwork"><div className="hero-admin-preview"><img src={content?.heroMainUrl || 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=800&q=85'} alt="Current main hero" /><img src={content?.heroSmallUrl || 'https://images.unsplash.com/photo-1533294455009-a77b7557d2d1?auto=format&fit=crop&w=500&q=85'} alt="Current small hero" /></div></Panel></div><div className="admin-split"><Panel title="Update home story images"><form className="admin-form-grid" onSubmit={(event) => void submit(event, 'Your new home story images are now live on the website.')}><label className="file-input admin-full">Large image — event venue photo<input name="introMain" type="file" accept="image/*" /></label><label className="file-input admin-full">Small overlay image — detail photo<input name="introSmall" type="file" accept="image/*" /></label><p className="admin-help admin-full">These are the two overlapping images below the home page introduction. Choose one or both images to replace.</p><button className="admin-button" type="submit">Update home story images</button></form></Panel><Panel title="Current home story artwork"><div className="hero-admin-preview"><img src={content?.introMainUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=850&q=85'} alt="Current home story main" /><img src={content?.introSmallUrl || 'https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=450&q=85'} alt="Current home story small" /></div></Panel></div></section>
+}
+
+export function AdminHomeContentPage() {
+  const token = useAdminToken()
+  const { confirm, notify } = useFeedback()
+  const [content, setContent] = useState<HomeContent | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.adminHomeContent(token)
+      .then((nextContent) => { setContent(nextContent); setError(null) })
+      .catch((reason: unknown) => setError(messageFor(reason, 'Unable to load home content.')))
+  }, [token])
+
+  const updateContent = async (event: FormEvent<HTMLFormElement>, successMessage: string) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    setError(null)
+    try {
+      setContent(await api.updateHomeContent(token, new FormData(form)))
+      form.reset()
+      notify({ title: 'Home page updated', message: successMessage })
+    } catch (reason) {
+      setError(messageFor(reason, 'Unable to update home page images.'))
+    }
+  }
+
+  const configuredHeroSlides = (content?.heroSlides || []).filter((slide) => Boolean(slide.url))
+  const legacyHeroSlides = [
+    content?.heroMainUrl ? { url: content.heroMainUrl, publicId: '' } : null,
+    content?.heroSmallUrl ? { url: content.heroSmallUrl, publicId: '' } : null,
+  ].filter((slide): slide is { url: string; publicId: string } => Boolean(slide))
+  const storedHeroSlides = configuredHeroSlides.length ? configuredHeroSlides : legacyHeroSlides
+  const previewHeroSlides = storedHeroSlides.length ? storedHeroSlides : [
+    { url: 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=800&q=85', publicId: '' },
+    { url: 'https://images.unsplash.com/photo-1533294455009-a77b7557d2d1?auto=format&fit=crop&w=500&q=85', publicId: '' },
+  ]
+
+  const removeHeroSlide = async (slideUrl: string) => {
+    if (!await confirm({ title: 'Remove this slider image?', message: 'This image will be removed from the home page hero slider.', confirmLabel: 'Remove image', tone: 'error' })) return
+    setError(null)
+    try {
+      const form = new FormData()
+      form.append('removeHeroSlideUrl', slideUrl)
+      setContent(await api.updateHomeContent(token, form))
+      notify({ title: 'Slider image removed', message: 'The home page hero slider has been updated.' })
+    } catch (reason) {
+      setError(messageFor(reason, 'Unable to remove the slider image.'))
+    }
+  }
+
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Home page content</p><h1>Your first <em>beautiful impression.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Add hero slider images"><form className="admin-form-grid" onSubmit={(event) => void updateContent(event, 'Your new images are now part of the home page hero slider.')}><label className="file-input admin-full">Select slider images<input name="heroSlides" type="file" accept="image/*" multiple /></label><p className="admin-help admin-full">Choose one or more images to add to the hero slider. The existing slides stay in place, and you can keep up to 10 images.</p><button className="admin-button" type="submit">Add to hero slider</button></form></Panel><Panel title={`Hero slider images (${previewHeroSlides.length})`}><div className="hero-slider-admin-grid">{previewHeroSlides.map((slide, index) => <article key={slide.url}><img src={slide.url} alt={`Hero slider slide ${index + 1}`} /><footer><span>Slide {String(index + 1).padStart(2, '0')}</span>{storedHeroSlides.length ? <button type="button" onClick={() => void removeHeroSlide(slide.url)}>Remove</button> : <small>Default image</small>}</footer></article>)}</div></Panel></div><div className="admin-split"><Panel title="Update home story images"><form className="admin-form-grid" onSubmit={(event) => void updateContent(event, 'Your new home story images are now live on the website.')}><label className="file-input admin-full">Large image — event venue photo<input name="introMain" type="file" accept="image/*" /></label><label className="file-input admin-full">Small overlay image — detail photo<input name="introSmall" type="file" accept="image/*" /></label><p className="admin-help admin-full">These are the two overlapping images below the home page introduction. Choose one or both images to replace.</p><button className="admin-button" type="submit">Update home story images</button></form></Panel><Panel title="Current home story artwork"><div className="hero-admin-preview"><img src={content?.introMainUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=850&q=85'} alt="Current home story main" /><img src={content?.introSmallUrl || 'https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=450&q=85'} alt="Current home story small" /></div></Panel></div></section>
 }
 
 export function AdminPageArtworkPage() {

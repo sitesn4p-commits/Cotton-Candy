@@ -23,4 +23,5 @@ export const env = {
   emailFrom: process.env.EMAIL_FROM || '',
   emailReplyTo: process.env.EMAIL_REPLY_TO || '',
   resendBookingTemplateId: process.env.RESEND_BOOKING_TEMPLATE_ID || '',
+  resendCompletionTemplateId: process.env.RESEND_COMPLETION_TEMPLATE_ID || '',
 }

@@ -4,6 +4,7 @@ import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
 import { NewsletterSubscriber } from '../models/NewsletterSubscriber.js'
 import { Offering } from '../models/Offering.js'
+import { OrderNotification } from '../models/OrderNotification.js'
 import { Promotion } from '../models/Promotion.js'
 import { PromotionEmail } from '../models/PromotionEmail.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
@@ -11,7 +12,7 @@ import { SiteSettings } from '../models/SiteSettings.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { upload } from '../middleware/upload.js'
 import { removeAsset, uploadAsset } from '../services/cloudinary.js'
-import { sendActivationEmail, sendPromotionEmail } from '../services/email.js'
+import { sendActivationEmail, sendCompletionEmail, sendPromotionEmail } from '../services/email.js'
 
 const router = Router()
 const validTypes = new Set(['service', 'hire'])
@@ -59,6 +60,11 @@ function youtubeEmbedUrl(value: string) {
 function uploadedFile(files: Express.Request['files'], field: string) {
   if (!files || Array.isArray(files)) return undefined
   return files[field]?.[0]
+}
+
+function uploadedFiles(files: Express.Request['files'], field: string) {
+  if (!files || Array.isArray(files)) return []
+  return files[field] || []
 }
 
 router.use(requireAuth, requireAdmin)
@@ -204,9 +210,62 @@ router.patch('/service-requests/:requestId/status', async (req, res, next) => {
   try {
     const status = String(req.body.status || '')
     if (!validStatuses.has(status)) return res.status(400).json({ message: 'Choose pending, active, complete or cancel.' })
+    if (status === 'active' || status === 'complete') return res.status(400).json({ message: `Use the ${status === 'active' ? 'active order' : 'complete order'} workflow so the customer receives the right update.` })
     const request = await ServiceRequest.findByIdAndUpdate(req.params.requestId, { status }, { new: true })
     if (!request) return res.status(404).json({ message: 'Request not found.' })
     return res.json(request)
+  } catch (error) { return next(error) }
+})
+
+router.post('/service-requests/:requestId/activate', async (req, res, next) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.requestId)
+    if (!request) return res.status(404).json({ message: 'Request not found.' })
+    if (request.status === 'complete' || request.status === 'cancel') return res.status(400).json({ message: 'Completed or cancelled orders cannot be made active.' })
+    request.status = 'active'
+    await request.save()
+    try {
+      await sendActivationEmail({ customerName: request.customerName, email: request.email, trackingId: request.trackingId, offeringName: request.offeringName, type: request.type, hireDays: request.hireDays, totalPrice: request.totalPrice, eventDate: request.eventDate || undefined })
+      request.activeEmailSentAt = new Date()
+      await request.save()
+      return res.json({ message: 'Order is active and the customer has been told you will contact them about the advance payment.', request, emailSent: true })
+    } catch (error) {
+      console.error('Active order email failed', error)
+      return res.json({ message: 'Order is active, but the customer email could not be sent yet. Check your email settings and use resend notice.', request, emailSent: false })
+    }
+  } catch (error) { return next(error) }
+})
+
+router.patch('/service-requests/:requestId/advance-payment', async (req, res, next) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.requestId)
+    if (!request) return res.status(404).json({ message: 'Request not found.' })
+    if (request.status !== 'active') return res.status(400).json({ message: 'Only active orders can have an advance payment recorded.' })
+    const advancePaymentComplete = booleanValue(req.body.advancePaymentComplete, true)
+    request.advancePaymentComplete = advancePaymentComplete
+    request.advancePaymentCompletedAt = advancePaymentComplete ? new Date() : undefined
+    await request.save()
+    return res.json(request)
+  } catch (error) { return next(error) }
+})
+
+router.post('/service-requests/:requestId/complete', async (req, res, next) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.requestId)
+    if (!request) return res.status(404).json({ message: 'Request not found.' })
+    if (request.status !== 'active') return res.status(400).json({ message: 'Make this order active before completing it.' })
+    if (!request.advancePaymentComplete) return res.status(400).json({ message: 'Record the advance payment before marking the full payment complete.' })
+    request.status = 'complete'
+    await request.save()
+    try {
+      await sendCompletionEmail({ customerName: request.customerName, email: request.email, trackingId: request.trackingId, offeringName: request.offeringName, type: request.type, hireDays: request.hireDays, totalPrice: request.totalPrice, eventDate: request.eventDate || undefined })
+      request.completedEmailSentAt = new Date()
+      await request.save()
+      return res.json({ message: 'Order is complete and the customer has been emailed.', request, emailSent: true })
+    } catch (error) {
+      console.error('Completed order email failed', error)
+      return res.json({ message: 'Order is complete, but the completion email could not be sent yet. Check your email settings and resend it after.', request, emailSent: false })
+    }
   } catch (error) { return next(error) }
 })
 
@@ -225,7 +284,9 @@ router.post('/service-requests/:requestId/activation-email', async (req, res, ne
     if (!request) return res.status(404).json({ message: 'Request not found.' })
     if (request.status !== 'active') return res.status(400).json({ message: 'Mark this order active before sending the booking email.' })
     const resendEmailId = await sendActivationEmail({ customerName: request.customerName, email: request.email, trackingId: request.trackingId, offeringName: request.offeringName, type: request.type, hireDays: request.hireDays, totalPrice: request.totalPrice, eventDate: request.eventDate || undefined })
-    return res.status(201).json({ message: 'Booking activation email sent.', resendEmailId })
+    request.activeEmailSentAt = new Date()
+    await request.save()
+    return res.status(201).json({ message: 'Active order notice sent.', resendEmailId })
   } catch (error) { return next(error) }
 })
 
@@ -272,8 +333,23 @@ router.delete('/service-requests/:requestId', async (req, res, next) => {
     const request = await ServiceRequest.findById(req.params.requestId)
     if (!request) return res.status(404).json({ message: 'Request not found.' })
     await PromotionEmail.deleteMany({ request: request._id })
+    await OrderNotification.deleteMany({ request: request._id })
     await request.deleteOne()
     return res.status(204).send()
+  } catch (error) { return next(error) }
+})
+
+router.get('/order-notifications', async (_req, res, next) => {
+  try {
+    return res.json(await OrderNotification.find().populate('request', 'trackingId offeringName customerName email status eventDate hireDays totalPrice').sort({ read: 1, createdAt: -1 }))
+  } catch (error) { return next(error) }
+})
+
+router.patch('/order-notifications/:notificationId/read', async (req, res, next) => {
+  try {
+    const notification = await OrderNotification.findByIdAndUpdate(req.params.notificationId, { read: booleanValue(req.body.read, true) }, { new: true }).populate('request', 'trackingId offeringName customerName email status eventDate hireDays totalPrice')
+    if (!notification) return res.status(404).json({ message: 'Notification not found.' })
+    return res.json(notification)
   } catch (error) { return next(error) }
 })
 
@@ -404,28 +480,45 @@ router.get('/home-content', async (_req, res, next) => {
   try { return res.json(await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })) } catch (error) { return next(error) }
 })
 
-router.patch('/home-content', upload.fields([{ name: 'heroMain', maxCount: 1 }, { name: 'heroSmall', maxCount: 1 }, { name: 'introMain', maxCount: 1 }, { name: 'introSmall', maxCount: 1 }]), async (req, res, next) => {
+router.patch('/home-content', upload.fields([{ name: 'heroSlides', maxCount: 10 }, { name: 'introMain', maxCount: 1 }, { name: 'introSmall', maxCount: 1 }]), async (req, res, next) => {
   try {
     const settings = await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })
-    const heroMain = uploadedFile(req.files, 'heroMain')
-    const heroSmall = uploadedFile(req.files, 'heroSmall')
+    const heroSlideFiles = uploadedFiles(req.files, 'heroSlides')
     const introMain = uploadedFile(req.files, 'introMain')
     const introSmall = uploadedFile(req.files, 'introSmall')
-    if (heroMain) {
-      if (!heroMain.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Hero images must be image files.' })
-      const asset = await uploadAsset(heroMain, 'cotton-candy/home')
-      const previousPublicId = settings.heroMainPublicId
-      settings.heroMainUrl = asset.secure_url
-      settings.heroMainPublicId = asset.public_id
-      await removeAsset(previousPublicId)
+    const removeHeroSlideUrl = String(req.body.removeHeroSlideUrl || '').trim()
+    const existingSlides = settings.heroSlides.length
+      ? settings.heroSlides.map((slide) => ({ url: slide.url, publicId: slide.publicId }))
+      : [
+          { url: settings.heroMainUrl, publicId: settings.heroMainPublicId },
+          { url: settings.heroSmallUrl, publicId: settings.heroSmallPublicId },
+        ].filter((slide) => Boolean(slide.url))
+    let heroSlidesChanged = false
+
+    if (removeHeroSlideUrl) {
+      const slideToRemove = existingSlides.find((slide) => slide.url === removeHeroSlideUrl)
+      if (!slideToRemove) return res.status(404).json({ message: 'Hero slider image not found.' })
+      await removeAsset(slideToRemove.publicId)
+      existingSlides.splice(existingSlides.indexOf(slideToRemove), 1)
+      heroSlidesChanged = true
     }
-    if (heroSmall) {
-      if (!heroSmall.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Hero images must be image files.' })
-      const asset = await uploadAsset(heroSmall, 'cotton-candy/home')
-      const previousPublicId = settings.heroSmallPublicId
-      settings.heroSmallUrl = asset.secure_url
-      settings.heroSmallPublicId = asset.public_id
-      await removeAsset(previousPublicId)
+
+    if (heroSlideFiles.length) {
+      if (existingSlides.length + heroSlideFiles.length > 10) return res.status(400).json({ message: 'Keep the hero slider to 10 images or fewer.' })
+      for (const file of heroSlideFiles) {
+        if (!file.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Hero slider files must be images.' })
+      }
+      const assets = await Promise.all(heroSlideFiles.map((file) => uploadAsset(file, 'cotton-candy/home-slider')))
+      existingSlides.push(...assets.map((asset) => ({ url: asset.secure_url, publicId: asset.public_id })))
+      heroSlidesChanged = true
+    }
+
+    if (heroSlidesChanged) {
+      settings.set('heroSlides', existingSlides)
+      settings.heroMainUrl = ''
+      settings.heroMainPublicId = ''
+      settings.heroSmallUrl = ''
+      settings.heroSmallPublicId = ''
     }
     if (introMain) {
       if (!introMain.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Home story images must be image files.' })
@@ -443,7 +536,7 @@ router.patch('/home-content', upload.fields([{ name: 'heroMain', maxCount: 1 }, 
       settings.introSmallPublicId = asset.public_id
       await removeAsset(previousPublicId)
     }
-    if (!heroMain && !heroSmall && !introMain && !introSmall) return res.status(400).json({ message: 'Choose at least one image to update.' })
+    if (!heroSlidesChanged && !introMain && !introSmall) return res.status(400).json({ message: 'Choose at least one image to update.' })
     await settings.save()
     return res.json(settings)
   } catch (error) { return next(error) }

@@ -15,18 +15,6 @@
   transform: rotate(-3.2deg);
 }
 
-.hero-slider-art::after {
-  background: linear-gradient(90deg, var(--sage), rgba(122, 129, 108, 0));
-  content: '';
-  height: 4px;
-  left: -12px;
-  opacity: .7;
-  position: absolute;
-  top: 42px;
-  transform: rotate(-3.2deg);
-  width: 34%;
-}
-
 .hero-slider-card {
   background: linear-gradient(150deg, #fffefa, #eee7df);
   border: 8px solid rgba(255, 253, 250, .92);

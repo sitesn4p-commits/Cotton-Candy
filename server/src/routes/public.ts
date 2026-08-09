@@ -4,6 +4,7 @@ import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
 import { NewsletterSubscriber } from '../models/NewsletterSubscriber.js'
 import { Offering } from '../models/Offering.js'
+import { OrderNotification } from '../models/OrderNotification.js'
 import { Promotion } from '../models/Promotion.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
@@ -20,6 +21,16 @@ function trackingId() {
 }
 
 function roundLkr(value: number) { return Math.round(value) }
+const changeCutoffMs = 10 * 24 * 60 * 60 * 1000
+
+function hasTenDayLeadTime(value: Date) {
+  return value.getTime() - Date.now() >= changeCutoffMs
+}
+
+function dateValue(value: unknown) {
+  const date = new Date(String(value || ''))
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 router.get('/categories', async (req, res, next) => {
   try {
@@ -107,9 +118,71 @@ router.get('/service-requests', async (req, res, next) => {
   try {
     const email = String(req.query.email || '').trim().toLowerCase()
     if (!email || !email.includes('@')) return res.status(400).json({ message: 'Enter the email address used for the order.' })
-    const requests = await ServiceRequest.find({ email }).select('type offeringName eventDate status createdAt hireDays unitPrice subtotal discountPercent discountAmount totalPrice promotionTitle')
+    const requests = await ServiceRequest.find({ email }).select('trackingId type offeringName customerName email phone eventType eventDate notes status createdAt updatedAt hireDays unitPrice subtotal discountPercent discountAmount totalPrice promotionTitle advancePaymentComplete')
       .sort({ createdAt: -1 })
     return res.json(requests)
+  } catch (error) { return next(error) }
+})
+
+router.patch('/service-requests/:trackingId/customer', async (req, res, next) => {
+  try {
+    const trackingId = String(req.params.trackingId || '').trim().toUpperCase()
+    const referenceId = String(req.body.referenceId || '').trim().toUpperCase()
+    const email = String(req.body.email || '').trim().toLowerCase()
+    const action = String(req.body.action || 'update').trim().toLowerCase()
+    if (!trackingId || !referenceId || !email) return res.status(400).json({ message: 'Enter both your email address and order reference ID.' })
+    if (trackingId !== referenceId) return res.status(400).json({ message: 'The reference ID does not match this order.' })
+    if (!['update', 'cancel'].includes(action)) return res.status(400).json({ message: 'Choose a valid order action.' })
+
+    const request = await ServiceRequest.findOne({ trackingId, email })
+    if (!request) return res.status(404).json({ message: 'We could not confirm that order with this email and reference ID.' })
+    if (request.status === 'complete' || request.status === 'cancel') return res.status(400).json({ message: 'Completed or cancelled orders can no longer be changed online.' })
+    if (!request.eventDate || !hasTenDayLeadTime(request.eventDate)) return res.status(400).json({ message: 'Online changes close 10 days before your event or hire start date. Please contact us for help.' })
+
+    if (action === 'cancel') {
+      request.status = 'cancel'
+      await request.save()
+      await OrderNotification.create({ request: request._id, type: 'cancelled', message: 'Customer cancelled this order online.', details: `${request.customerName} cancelled ${request.offeringName}.` })
+      return res.json({ message: 'Your order has been cancelled and our team has been notified.', request })
+    }
+
+    const eventDateInput = String(req.body.eventDate || '').trim()
+    const nextEventDate = eventDateInput ? dateValue(eventDateInput) : request.eventDate
+    if (!nextEventDate) return res.status(400).json({ message: 'Add a valid event or hire start date before saving changes.' })
+    if (!hasTenDayLeadTime(nextEventDate)) return res.status(400).json({ message: 'Your updated event or hire start date must be at least 10 days away.' })
+
+    const changed: string[] = []
+    const updateString = (key: 'customerName' | 'phone' | 'eventType' | 'notes', label: string) => {
+      if (typeof req.body[key] !== 'string') return
+      const value = String(req.body[key]).trim()
+      if (request[key] !== value) {
+        request[key] = value
+        changed.push(label)
+      }
+    }
+    updateString('customerName', 'customer name')
+    updateString('phone', 'phone number')
+    updateString('eventType', 'event type')
+    updateString('notes', 'notes')
+    if (request.eventDate.getTime() !== nextEventDate.getTime()) {
+      request.eventDate = nextEventDate
+      changed.push('event date')
+    }
+    if (request.type === 'hire') {
+      const hireDays = Number(req.body.hireDays || request.hireDays)
+      if (!Number.isInteger(hireDays) || hireDays < 1 || hireDays > 30) return res.status(400).json({ message: 'Choose a hire period between 1 and 30 days.' })
+      if (request.hireDays !== hireDays) {
+        request.hireDays = hireDays
+        request.subtotal = roundLkr(request.unitPrice * hireDays)
+        request.discountAmount = roundLkr(request.subtotal * request.discountPercent / 100)
+        request.totalPrice = Math.max(0, request.subtotal - request.discountAmount)
+        changed.push('hire duration and price')
+      }
+    }
+
+    await request.save()
+    await OrderNotification.create({ request: request._id, type: 'updated', message: 'Customer updated this order online.', details: changed.length ? `Updated: ${changed.join(', ')}.` : 'Customer saved their order without changing any details.' })
+    return res.json({ message: 'Your changes have been saved and our team has been notified.', request })
   } catch (error) { return next(error) }
 })
 
