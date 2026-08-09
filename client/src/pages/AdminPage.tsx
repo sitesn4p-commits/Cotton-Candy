@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useFeedback } from '../components/Feedback'
-import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type MediaAsset, type NewsletterSubscriber, type Offering, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
+import { api, type AdminDashboard, type Category, type CollectionType, type ContactMessage, type HomeContent, type MediaAsset, type NewsletterSubscriber, type Offering, type Promotion, type RequestStatus, type ServiceRequest } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 
 const emptyDashboard: AdminDashboard = { totals: { requests: 0, pending: 0, unreadMessages: 0, media: 0 }, requests: [], messages: [], offerings: [], promotions: [] }
@@ -505,20 +505,39 @@ export function AdminPromotionsPage() {
 export function AdminHomeContentPage() {
   const token = useAdminToken()
   const { notify } = useFeedback()
-  const [content, setContent] = useState<{ heroMainUrl: string; heroSmallUrl: string } | null>(null)
+  const [content, setContent] = useState<HomeContent | null>(null)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { api.adminHomeContent(token).then((nextContent) => { setContent(nextContent); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load home content.'))) }, [token])
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>, successMessage: string) => {
     event.preventDefault()
     const form = event.currentTarget
     setError(null)
     try {
       setContent(await api.updateHomeContent(token, new FormData(form)))
       form.reset()
-      notify({ title: 'Home page updated', message: 'Your new hero artwork is now live on the website.' })
-    } catch (reason) { setError(messageFor(reason, 'Unable to update hero images.')) }
+      notify({ title: 'Home page updated', message: successMessage })
+    } catch (reason) { setError(messageFor(reason, 'Unable to update home page images.')) }
   }
-  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Home page hero</p><h1>Your first <em>beautiful impression.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Update hero images"><form className="admin-form-grid" onSubmit={submit}><label className="file-input admin-full">Main image — right of “Make your day”<input name="heroMain" type="file" accept="image/*" /></label><label className="file-input admin-full">Small overlay image<input name="heroSmall" type="file" accept="image/*" /></label><p className="admin-help admin-full">Choose one or both images. The existing image remains if no replacement is selected.</p><button className="admin-button" type="submit">Update home page</button></form></Panel><Panel title="Current hero artwork"><div className="hero-admin-preview"><img src={content?.heroMainUrl || 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=800&q=85'} alt="Current main hero" /><img src={content?.heroSmallUrl || 'https://images.unsplash.com/photo-1533294455009-a77b7557d2d1?auto=format&fit=crop&w=500&q=85'} alt="Current small hero" /></div></Panel></div></section>
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Home page content</p><h1>Your first <em>beautiful impression.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Update hero images"><form className="admin-form-grid" onSubmit={(event) => void submit(event, 'Your new hero artwork is now live on the website.')}><label className="file-input admin-full">Main image — right of “Make your day”<input name="heroMain" type="file" accept="image/*" /></label><label className="file-input admin-full">Small overlay image<input name="heroSmall" type="file" accept="image/*" /></label><p className="admin-help admin-full">Choose one or both images. The existing image remains if no replacement is selected.</p><button className="admin-button" type="submit">Update hero images</button></form></Panel><Panel title="Current hero artwork"><div className="hero-admin-preview"><img src={content?.heroMainUrl || 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=800&q=85'} alt="Current main hero" /><img src={content?.heroSmallUrl || 'https://images.unsplash.com/photo-1533294455009-a77b7557d2d1?auto=format&fit=crop&w=500&q=85'} alt="Current small hero" /></div></Panel></div><div className="admin-split"><Panel title="Update home story images"><form className="admin-form-grid" onSubmit={(event) => void submit(event, 'Your new home story images are now live on the website.')}><label className="file-input admin-full">Large image — event venue photo<input name="introMain" type="file" accept="image/*" /></label><label className="file-input admin-full">Small overlay image — detail photo<input name="introSmall" type="file" accept="image/*" /></label><p className="admin-help admin-full">These are the two overlapping images below the home page introduction. Choose one or both images to replace.</p><button className="admin-button" type="submit">Update home story images</button></form></Panel><Panel title="Current home story artwork"><div className="hero-admin-preview"><img src={content?.introMainUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=850&q=85'} alt="Current home story main" /><img src={content?.introSmallUrl || 'https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=450&q=85'} alt="Current home story small" /></div></Panel></div></section>
+}
+
+export function AdminPageArtworkPage() {
+  const token = useAdminToken()
+  const { notify } = useFeedback()
+  const [content, setContent] = useState<HomeContent | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { api.adminPageArtwork(token).then((nextContent) => { setContent(nextContent); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load page artwork.'))) }, [token])
+  const submit = async (event: FormEvent<HTMLFormElement>, message: string) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    setError(null)
+    try {
+      setContent(await api.updatePageArtwork(token, new FormData(form)))
+      form.reset()
+      notify({ title: 'Page artwork updated', message })
+    } catch (reason) { setError(messageFor(reason, 'Unable to update page artwork.')) }
+  }
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Public page images</p><h1>Keep every page <em>beautiful.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="About page images"><form className="admin-form-grid" onSubmit={(event) => void submit(event, 'Your About page images are now live.')}><label className="file-input admin-full">Hero image — the large image behind the About heading<input name="aboutHero" type="file" accept="image/*" /></label><label className="file-input admin-full">Story image — the framed image beside the About text<input name="aboutStory" type="file" accept="image/*" /></label><p className="admin-help admin-full">Choose one or both images. Existing images remain when no replacement is selected.</p><button className="admin-button" type="submit">Update About images</button></form></Panel><Panel title="Current About artwork"><div className="hero-admin-preview page-artwork-preview"><img src={content?.aboutHeroUrl || 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1000&q=85'} alt="Current About hero" /><img src={content?.aboutStoryUrl || 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=85'} alt="Current About story" /></div></Panel></div><div className="admin-split"><Panel title="Bookings page hero"><form className="admin-form-grid" onSubmit={(event) => void submit(event, 'Your Bookings page hero image is now live.')}><label className="file-input admin-full">Bookings hero image<input name="bookingsHero" type="file" accept="image/*" /></label><p className="admin-help admin-full">This image appears behind the Bookings page heading. Leave it empty to keep the current image.</p><button className="admin-button" type="submit">Update Bookings image</button></form></Panel><Panel title="Current Bookings artwork"><div className="page-artwork-single"><img src={content?.bookingsHeroUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1400&q=85'} alt="Current Bookings hero" /></div></Panel></div></section>
 }
 
 function Dialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) { return <div className="admin-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section className="admin-dialog" role="dialog" aria-modal="true" aria-label={title}><button type="button" aria-label="Close" onClick={onClose}>×</button><p className="eyebrow">Cotton Candy collection</p><h2>{title}</h2>{children}</section></div> }

@@ -1,0 +1,61 @@
+.header-phone { align-items: flex-start; flex-direction: column; gap: 2px; padding: 7px 0; }
+.header-phone::before { display: none; }
+.header-phone span, .mobile-nav-phone span { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: 1.35px; text-transform: uppercase; }
+.header-phone strong { color: var(--faded-rust); font-size: 17px; letter-spacing: 1.4px; line-height: 1; }
+.mobile-nav-phone { align-items: flex-start; display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; }
+.mobile-nav-phone strong { color: var(--cream); font: 700 20px/1 var(--sans); grid-column: 1; letter-spacing: 1px; }
+.mobile-nav-phone i { align-self: center; color: #f4c7c1; font-size: 20px; font-style: normal; grid-column: 2; grid-row: 1 / 3; }
+
+.hero-landscape .hero-content { max-width: min(50vw, 650px); }
+.hero-landscape .hero-typed-heading { font-size: clamp(52px, 5.35vw, 82px); letter-spacing: -.06em; line-height: .94; }
+.hero-landscape .hero-copy { max-width: 580px; }
+
+.home-service-ticker { align-items: stretch; border-bottom: 1px solid var(--line); display: grid; gap: 9px; max-width: none; overflow: hidden; padding: 19px max(24px, calc((100% - 1180px) / 2)); width: 100%; }
+.home-service-ticker > p { color: var(--muted); font: italic 14px/1.3 var(--serif); margin: 0; white-space: nowrap; }
+.home-service-ticker-track { animation: home-service-scroll 40s linear infinite; display: flex; gap: 13px; min-width: max-content; padding-left: 0; }
+.home-service-ticker-track span { color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: .92px; text-transform: uppercase; white-space: nowrap; }
+.home-service-ticker-track i { align-self: center; background: var(--faded-rust); border-radius: 50%; flex: 0 0 4px; height: 4px; width: 4px; }
+.home-service-ticker:hover .home-service-ticker-track { animation-play-state: paused; }
+@keyframes home-service-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+.page-hero-about, .page-hero-services { background-image: linear-gradient(90deg, rgba(47, 39, 37, .71), rgba(47, 39, 37, .32)), var(--page-artwork); background-position: center; background-size: cover; }
+.page-hero-about::before, .page-hero-services::before { background: linear-gradient(90deg, rgba(47, 39, 37, .28), transparent); }
+.page-hero-about .container, .page-hero-services .container { position: relative; z-index: 1; }
+.page-hero-about .eyebrow, .page-hero-services .eyebrow { color: #f5d5d2; }
+.page-hero-about h1, .page-hero-services h1, .page-hero-services p { color: #fff9f2; text-shadow: 0 2px 18px rgba(34, 28, 27, .24); }
+.page-hero-about h1 em, .page-hero-services h1 em { color: #efb9b6; }
+
+.collection-choice > a:hover, .collection-choice > a:nth-child(2):hover { background: var(--sage); color: #fffaf5; }
+.collection-choice > a:hover .eyebrow, .collection-choice > a:hover span, .collection-choice > a:hover p:not(.eyebrow) { color: #f7e9df; }
+.collection-choice > a:hover b { color: #fff; }
+
+.page-artwork-preview img:first-child { object-position: center; }
+.page-artwork-single { background: #f6ebed; min-height: 260px; padding: 17px; }
+.page-artwork-single img { display: block; height: 235px; object-fit: cover; width: 100%; }
+
+@media (max-width: 800px) {
+  .hero-landscape .hero-content { max-width: none; }
+  .hero-landscape .hero-typed-heading { font-size: clamp(42px, 9.4vw, 61px); letter-spacing: -.065em; }
+  .hero-landscape .hero-copy { max-width: 590px; }
+  .home-service-ticker { gap: 8px; padding: 17px 22px; }
+  .home-service-ticker > p { font-size: 13px; }
+  .home-service-ticker-track { animation-duration: 30s; }
+  .page-hero-about, .page-hero-services { background-position: center; }
+}
+
+@media (max-width: 520px) {
+  .header-phone { display: none; }
+  .hero-landscape .hero-typed-heading { font-size: clamp(35px, 10.1vw, 48px); line-height: .94; }
+  .hero-landscape .hero-copy { font-size: 13px; line-height: 1.52; max-width: 340px; }
+  .home-service-ticker { padding: 15px 16px; }
+  .home-service-ticker > p { font-size: 12px; }
+  .home-service-ticker-track span { font-size: 8px; }
+  .home-service-ticker-track { animation-duration: 25s; gap: 10px; }
+  .page-hero-about, .page-hero-services { background-position: 58% center; }
+  .page-artwork-single { min-height: 205px; }
+  .page-artwork-single img { height: 170px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-service-ticker-track { animation: none; }
+}

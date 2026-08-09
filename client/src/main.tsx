@@ -5,6 +5,8 @@ import App from './App'
 import { FeedbackProvider } from './components/Feedback'
 import { AuthProvider } from './lib/auth'
 import './styles.css'
+import './hero-slider.css'
+import './pdf-changes.css'
 
 const app = (
   <StrictMode>

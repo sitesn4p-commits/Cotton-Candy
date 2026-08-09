@@ -404,11 +404,13 @@ router.get('/home-content', async (_req, res, next) => {
   try { return res.json(await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })) } catch (error) { return next(error) }
 })
 
-router.patch('/home-content', upload.fields([{ name: 'heroMain', maxCount: 1 }, { name: 'heroSmall', maxCount: 1 }]), async (req, res, next) => {
+router.patch('/home-content', upload.fields([{ name: 'heroMain', maxCount: 1 }, { name: 'heroSmall', maxCount: 1 }, { name: 'introMain', maxCount: 1 }, { name: 'introSmall', maxCount: 1 }]), async (req, res, next) => {
   try {
     const settings = await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })
     const heroMain = uploadedFile(req.files, 'heroMain')
     const heroSmall = uploadedFile(req.files, 'heroSmall')
+    const introMain = uploadedFile(req.files, 'introMain')
+    const introSmall = uploadedFile(req.files, 'introSmall')
     if (heroMain) {
       if (!heroMain.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Hero images must be image files.' })
       const asset = await uploadAsset(heroMain, 'cotton-candy/home')
@@ -425,7 +427,53 @@ router.patch('/home-content', upload.fields([{ name: 'heroMain', maxCount: 1 }, 
       settings.heroSmallPublicId = asset.public_id
       await removeAsset(previousPublicId)
     }
-    if (!heroMain && !heroSmall) return res.status(400).json({ message: 'Choose at least one hero image to update.' })
+    if (introMain) {
+      if (!introMain.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Home story images must be image files.' })
+      const asset = await uploadAsset(introMain, 'cotton-candy/home')
+      const previousPublicId = settings.introMainPublicId
+      settings.introMainUrl = asset.secure_url
+      settings.introMainPublicId = asset.public_id
+      await removeAsset(previousPublicId)
+    }
+    if (introSmall) {
+      if (!introSmall.mimetype.startsWith('image/')) return res.status(400).json({ message: 'Home story images must be image files.' })
+      const asset = await uploadAsset(introSmall, 'cotton-candy/home')
+      const previousPublicId = settings.introSmallPublicId
+      settings.introSmallUrl = asset.secure_url
+      settings.introSmallPublicId = asset.public_id
+      await removeAsset(previousPublicId)
+    }
+    if (!heroMain && !heroSmall && !introMain && !introSmall) return res.status(400).json({ message: 'Choose at least one image to update.' })
+    await settings.save()
+    return res.json(settings)
+  } catch (error) { return next(error) }
+})
+
+router.get('/page-artwork', async (_req, res, next) => {
+  try { return res.json(await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })) } catch (error) { return next(error) }
+})
+
+router.patch('/page-artwork', upload.fields([{ name: 'aboutHero', maxCount: 1 }, { name: 'aboutStory', maxCount: 1 }, { name: 'bookingsHero', maxCount: 1 }]), async (req, res, next) => {
+  try {
+    const settings = await SiteSettings.findOneAndUpdate({ key: 'main' }, { $setOnInsert: { key: 'main' } }, { new: true, upsert: true })
+    const artwork = [
+      ['aboutHero', 'aboutHeroUrl', 'aboutHeroPublicId', 'About page hero image'],
+      ['aboutStory', 'aboutStoryUrl', 'aboutStoryPublicId', 'About page story image'],
+      ['bookingsHero', 'bookingsHeroUrl', 'bookingsHeroPublicId', 'Bookings page hero image'],
+    ] as const
+    let changed = false
+    for (const [field, urlField, publicIdField, label] of artwork) {
+      const file = uploadedFile(req.files, field)
+      if (!file) continue
+      if (!file.mimetype.startsWith('image/')) return res.status(400).json({ message: `${label} must be an image file.` })
+      const asset = await uploadAsset(file, 'cotton-candy/page-artwork')
+      const previousPublicId = settings.get(publicIdField) as string
+      settings.set(urlField, asset.secure_url)
+      settings.set(publicIdField, asset.public_id)
+      await removeAsset(previousPublicId)
+      changed = true
+    }
+    if (!changed) return res.status(400).json({ message: 'Choose at least one image to update.' })
     await settings.save()
     return res.json(settings)
   } catch (error) { return next(error) }

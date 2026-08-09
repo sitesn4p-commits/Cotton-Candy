@@ -6,6 +6,16 @@ const siteSettingsSchema = new Schema({
   heroMainPublicId: { type: String, default: '' },
   heroSmallUrl: { type: String, default: '' },
   heroSmallPublicId: { type: String, default: '' },
+  introMainUrl: { type: String, default: '' },
+  introMainPublicId: { type: String, default: '' },
+  introSmallUrl: { type: String, default: '' },
+  introSmallPublicId: { type: String, default: '' },
+  aboutHeroUrl: { type: String, default: '' },
+  aboutHeroPublicId: { type: String, default: '' },
+  aboutStoryUrl: { type: String, default: '' },
+  aboutStoryPublicId: { type: String, default: '' },
+  bookingsHeroUrl: { type: String, default: '' },
+  bookingsHeroPublicId: { type: String, default: '' },
 }, { timestamps: true })
 
 export const SiteSettings = model('SiteSettings', siteSettingsSchema)

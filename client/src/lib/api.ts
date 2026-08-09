@@ -28,7 +28,7 @@ export type ServiceRequest = { _id: string; trackingId?: string; type: Collectio
 export type ContactMessage = { _id: string; name: string; email: string; phone?: string; eventType?: string; eventDate?: string; message: string; createdAt: string; read: boolean }
 export type MediaAsset = { _id: string; title: string; kind: 'image' | 'video'; category: string; url: string; source?: 'upload' | 'youtube'; createdAt: string }
 export type Promotion = { _id: string; title: string; description: string; desktopImageUrl: string; mobileImageUrl: string; discountPercent: number; appliesTo: 'all' | CollectionType; enabled: boolean; showOnLoad: boolean; createdAt: string }
-export type HomeContent = { _id: string; heroMainUrl: string; heroSmallUrl: string }
+export type HomeContent = { _id: string; heroMainUrl: string; heroSmallUrl: string; introMainUrl: string; introSmallUrl: string; aboutHeroUrl: string; aboutStoryUrl: string; bookingsHeroUrl: string }
 export type AdminDashboard = { totals: { requests: number; pending: number; unreadMessages: number; media: number }; requests: ServiceRequest[]; messages: ContactMessage[]; offerings: Offering[]; promotions: Promotion[] }
 export type AuthUser = { id: string; name: string; email: string; role: 'admin' }
 export type AuthResponse = { token: string; user: AuthUser }
@@ -77,4 +77,6 @@ export const api = {
   deletePromotion: (token: string, promotionId: string) => request<void>(`/admin/promotions/${promotionId}`, { method: 'DELETE', token }),
   adminHomeContent: (token: string) => request<HomeContent>('/admin/home-content', { token }),
   updateHomeContent: (token: string, form: FormData) => request<HomeContent>('/admin/home-content', { method: 'PATCH', body: form, token }),
+  adminPageArtwork: (token: string) => request<HomeContent>('/admin/page-artwork', { token }),
+  updatePageArtwork: (token: string, form: FormData) => request<HomeContent>('/admin/page-artwork', { method: 'PATCH', body: form, token }),
 }

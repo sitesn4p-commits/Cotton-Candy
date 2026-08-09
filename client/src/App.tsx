@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AdminCategoriesPage, AdminCollectionPage, AdminGalleryImagesPage, AdminHomeContentPage, AdminMediaPage, AdminMessagesPage, AdminNewsletterSubscribersPage, AdminOrderHistoryPage, AdminPage, AdminPromotionsPage, AdminRequestsPage } from './pages/AdminPage'
+import { AdminCategoriesPage, AdminCollectionPage, AdminGalleryImagesPage, AdminHomeContentPage, AdminMediaPage, AdminMessagesPage, AdminNewsletterSubscribersPage, AdminOrderHistoryPage, AdminPage, AdminPageArtworkPage, AdminPromotionsPage, AdminRequestsPage } from './pages/AdminPage'
 import { AdminLoginPage } from './pages/AdminLoginPage'
 import { ContactPage, GalleryImagesPage, GalleryPage, HireCollectionPage, HomePage, OfferingDetailsPage, PromotionsPage, ServicesCollectionPage, ServicesHirePage, UpdatedAboutPage } from './pages/PublicPages'
 import { AdminLayout } from './components/AdminLayout'
@@ -23,6 +23,7 @@ export default function App() {
         <Route path="gallery/videos" element={<AdminMediaPage kind="video" />} />
         <Route path="promotions" element={<AdminPromotionsPage />} />
         <Route path="home-content" element={<AdminHomeContentPage />} />
+        <Route path="page-artwork" element={<AdminPageArtworkPage />} />
       </Route>
     </>
   )
