@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
-import { AdminAppInstall } from './AdminAppInstall'
 import { AdminPushRegistration, storedAdminPushToken } from './AdminPushRegistration'
 
 const adminLinks = [
@@ -45,7 +44,7 @@ export function AdminLayout() {
       <nav id="admin-navigation" className="admin-nav admin-nav-new">
         {adminLinks.map(([path, label, icon]) => <NavLink end={!path} key={path || 'overview'} to={path ? `/manage-cotton-candy/${path}` : '/manage-cotton-candy'} onClick={() => setOpen(false)}><span>{icon}</span>{label}</NavLink>)}
       </nav>
-      <div className="admin-sidebar-bottom"><AdminAppInstall /><AdminPushRegistration /><a href={websiteUrl} target="_blank" rel="noreferrer">↗ View website</a><button type="button" onClick={handleSignOut}>Log out</button></div>
+      <div className="admin-sidebar-bottom"><AdminPushRegistration /><a href={websiteUrl} target="_blank" rel="noreferrer">↗ View website</a><button type="button" onClick={handleSignOut}>Log out</button></div>
     </aside>
     <main className="admin-main admin-main-new"><header className="admin-topbar"><button type="button" className="admin-menu-toggle" aria-controls="admin-navigation" aria-expanded={open} aria-label={open ? 'Close admin menu' : 'Open admin menu'} onClick={() => setOpen((value) => !value)}>☰</button><div><p>Private management space</p><strong>Cotton Candy Event Deco</strong></div><a href={websiteUrl} target="_blank" rel="noreferrer">View website ↗</a></header><Outlet /></main>
   </div>

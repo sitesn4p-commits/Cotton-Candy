@@ -18,7 +18,7 @@ The admin workspace has separate pages for services, hire items, categories, cus
 
 ## Admin mobile and desktop apps
 
-The dedicated admin build is installable as a PWA in Chrome or Edge. Sign in to the deployed admin workspace, then use **Install app** in the sidebar (or the browser's **Install app / Add to Home screen** command). This provides the fastest Windows and Android admin app experience.
+The dedicated admin workspace runs in the browser and is also packaged as a native Android app. The admin UI does not show a browser install action; use the Android APK when an installed mobile app is required.
 
 The repository also contains native wrappers:
 

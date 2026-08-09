@@ -3,7 +3,6 @@ const FIREBASE_CONFIG = null
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/admin-manifest.webmanifest',
   '/cotton-candy-logo-web.png',
 ]
 

@@ -20,11 +20,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       {
-        name: 'admin-pwa-manifest',
-        transformIndexHtml(html) {
-          if (!isAdminBuild) return html
-          return html.replace('</head>', '    <link rel="manifest" href="/admin-manifest.webmanifest" />\n    <meta name="theme-color" content="#3e443b" />\n  </head>')
-        },
+        name: 'admin-service-worker-config',
         closeBundle() {
           if (!isAdminBuild) return
           const serviceWorkerPath = resolve(process.cwd(), 'dist/admin-sw.js')

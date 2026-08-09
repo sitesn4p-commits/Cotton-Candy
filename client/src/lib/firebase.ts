@@ -24,6 +24,7 @@ export async function registerWebPush(onForegroundMessage: (payload: MessagePayl
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
   const messaging = getMessaging(app)
+  await navigator.serviceWorker.register('/admin-sw.js', { scope: '/' })
   const registration = await navigator.serviceWorker.ready
   let token: string
   try {

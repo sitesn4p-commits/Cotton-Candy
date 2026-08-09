@@ -1,8 +1,8 @@
 # Cotton Candy Admin Apps
 
-The private admin workspace can be installed in three ways:
+The private admin workspace is available in three ways:
 
-1. **Android and Windows PWA:** Sign in to the dedicated admin Render URL, then choose **Install app** from the sidebar or browser menu. This is the recommended way to receive web push notifications on Chrome and Edge.
+1. **Browser workspace:** Sign in to the dedicated admin Render URL. Use **Enable notifications** if you want browser push notifications on Chrome or Edge.
 2. **Android APK:** Capacitor wraps the admin React build in the Android project at `client/android`.
 3. **Windows installer:** Tauri wraps the same admin React build in `client/src-tauri` and creates an NSIS installer.
 
