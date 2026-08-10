@@ -413,7 +413,7 @@ export function AdminCancelledOrdersPage() {
 
 export function AdminMessagesPage() {
   const token = useAdminToken()
-  const { notify } = useFeedback()
+  const { confirm, notify } = useFeedback()
   const [messages, setMessages] = useState<ContactMessage[]>([])
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(() => api.adminMessages(token).then((items) => { setMessages(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load messages.'))), [token])
@@ -425,7 +425,15 @@ export function AdminMessagesPage() {
       notify({ title: message.read ? 'Marked unread' : 'Marked as read', message: `Message from ${message.name} has been updated.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to update message.')) }
   }
-  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Website contact form</p><h1>Customer <em>messages.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card">{messages.length ? <div className="message-list">{messages.map((message) => <article className={message.read ? '' : 'unread'} key={message._id}><div><strong>{message.name}</strong><p>{message.email}{message.phone ? ` · ${message.phone}` : ''}</p></div><p>{message.message}</p><footer><span>{new Date(message.createdAt).toLocaleString()}</span><button type="button" onClick={() => void updateReadState(message)}>{message.read ? 'Mark unread' : 'Mark read'}</button></footer></article>)}</div> : <EmptyState>New contact form messages will appear here.</EmptyState>}</section></section>
+  const deleteMessage = async (message: ContactMessage) => {
+    if (!await confirm({ title: 'Delete this customer message?', message: `The message from ${message.name} will be permanently removed. This cannot be undone.`, confirmLabel: 'Delete message', tone: 'error' })) return
+    try {
+      await api.deleteMessage(token, message._id)
+      setMessages((current) => current.filter((item) => item._id !== message._id))
+      notify({ title: 'Message deleted', message: `The message from ${message.name} has been removed.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to delete this message.')) }
+  }
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Website contact form</p><h1>Customer <em>messages.</em></h1></div></div><ErrorNotice error={error} /><section className="admin-card">{messages.length ? <div className="message-list">{messages.map((message) => <article className={message.read ? '' : 'unread'} key={message._id}><div><strong>{message.name}</strong><p>{message.email}{message.phone ? ` · ${message.phone}` : ''}</p></div><p>{message.message}</p><footer><span>{new Date(message.createdAt).toLocaleString()}</span><div className="message-list-actions"><button type="button" onClick={() => void updateReadState(message)}>{message.read ? 'Mark unread' : 'Mark read'}</button><button className="message-delete-button" type="button" onClick={() => void deleteMessage(message)}>Delete</button></div></footer></article>)}</div> : <EmptyState>New contact form messages will appear here.</EmptyState>}</section></section>
 }
 
 export function AdminNewsletterSubscribersPage() {

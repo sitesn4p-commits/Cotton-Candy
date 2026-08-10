@@ -101,6 +101,7 @@ export const api = {
   markOrderNotificationRead: (token: string, notificationId: string, read: boolean) => request<OrderNotification>(`/admin/order-notifications/${notificationId}/read`, { method: 'PATCH', body: { read }, token }),
   adminMessages: (token: string) => request<ContactMessage[]>('/admin/messages', { token }),
   markMessageRead: (token: string, messageId: string, read: boolean) => request<ContactMessage>(`/admin/messages/${messageId}/read`, { method: 'PATCH', body: { read }, token }),
+  deleteMessage: (token: string, messageId: string) => request<void>(`/admin/messages/${messageId}`, { method: 'DELETE', token }),
   adminMedia: (token: string, kind?: 'image' | 'video') => request<MediaAsset[]>(`/admin/media${kind ? `?kind=${kind}` : ''}`, { token }),
   createMedia: (token: string, form: FormData) => request<MediaAsset[]>('/admin/media', { method: 'POST', body: form, token }),
   updateMediaGroup: (token: string, mediaIds: string[], body: { title: string; category: string }) => request<MediaAsset[]>('/admin/media/group', { method: 'PATCH', body: { ...body, mediaIds }, token }),

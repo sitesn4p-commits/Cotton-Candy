@@ -760,6 +760,9 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .message-list article > p { color: #624a54; font-size: 13px; margin: 13px 0; white-space: pre-wrap; }
 .message-list footer { align-items: center; display: flex; justify-content: space-between; }
 .message-list footer span { color: #9e8b91; font-size: 10px; }
+.message-list-actions { display: flex; gap: 8px; }
+.message-list .message-delete-button { border-color: #b65559; color: #9f4148; }
+.message-list .message-delete-button:hover { background: #b65559; color: #fff; }
 .admin-media-grid { display: grid; gap: 13px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .admin-media-grid article { background: #fcf7f8; overflow: hidden; }
 .admin-media-grid img, .admin-media-grid video, .admin-media-grid iframe { aspect-ratio: 1.1; background: #2e2229; border: 0; display: block; object-fit: cover; width: 100%; }

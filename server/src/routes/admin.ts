@@ -391,6 +391,14 @@ router.patch('/messages/:messageId/read', async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
+router.delete('/messages/:messageId', async (req, res, next) => {
+  try {
+    const message = await ContactMessage.findByIdAndDelete(req.params.messageId)
+    if (!message) return res.status(404).json({ message: 'Message not found.' })
+    return res.status(204).send()
+  } catch (error) { return next(error) }
+})
+
 router.get('/media', async (req, res, next) => {
   try {
     const kind = String(req.query.kind || '')
