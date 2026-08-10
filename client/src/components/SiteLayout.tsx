@@ -163,19 +163,6 @@ function SiteMotionEffects() {
         footerInvitation.appendChild(cover)
       }
 
-      const footer = document.querySelector<HTMLElement>('.site-footer')
-      if (footer && !footer.dataset.lightTracking && window.matchMedia('(pointer: fine)').matches) {
-        footer.dataset.lightTracking = 'true'
-        footer.addEventListener('pointermove', (event: globalThis.PointerEvent) => {
-          const bounds = footer.getBoundingClientRect()
-          footer.style.setProperty('--footer-light-x', `${(event.clientX - bounds.left) / bounds.width * 100}%`)
-          footer.style.setProperty('--footer-light-y', `${(event.clientY - bounds.top) / bounds.height * 100}%`)
-        })
-        footer.addEventListener('pointerleave', () => {
-          footer.style.setProperty('--footer-light-x', '50%')
-          footer.style.setProperty('--footer-light-y', '50%')
-        })
-      }
       return () => { observer.disconnect(); layer.remove(); card.classList.remove('has-balloon-garland') }
     })
     return () => window.cancelAnimationFrame(frame)
