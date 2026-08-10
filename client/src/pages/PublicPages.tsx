@@ -5,11 +5,11 @@ import { api, type Category, type CollectionType, type HomeContent, type MediaAs
 import { heroImageWidth, optimizedImageUrl, responsiveImageSrcSet } from '../lib/images'
 
 const heroBalloons = [
-  { color: 'pink', left: 7, top: 38, size: 78, tilt: -8 }, { color: 'lilac', left: 31, top: 11, size: 46, tilt: 9 },
-  { color: 'butter', left: 44, top: 76, size: 60, tilt: -5 }, { color: 'mint', left: 62, top: 16, size: 54, tilt: 6 },
-  { color: 'berry', left: 71, top: 76, size: 72, tilt: -7 }, { color: 'peach', left: 93, top: 42, size: 50, tilt: 10 },
-  { color: 'lilac', left: 18, top: 17, size: 42, tilt: -13 }, { color: 'butter', left: 52, top: 33, size: 48, tilt: 12 },
-  { color: 'mint', left: 82, top: 59, size: 43, tilt: -9 }, { color: 'peach', left: 36, top: 56, size: 38, tilt: 7 },
+  { color: 'pink', left: 5, top: 56, size: 78, tilt: -8 }, { color: 'lilac', left: 22, top: 10, size: 46, tilt: 9 },
+  { color: 'butter', left: 33, top: 76, size: 60, tilt: -5 }, { color: 'mint', left: 49, top: 29, size: 54, tilt: 6 },
+  { color: 'berry', left: 63, top: 79, size: 72, tilt: -7 }, { color: 'peach', left: 76, top: 14, size: 50, tilt: 10 },
+  { color: 'lilac', left: 91, top: 48, size: 42, tilt: -13 }, { color: 'butter', left: 29, top: 38, size: 48, tilt: 12 },
+  { color: 'mint', left: 54, top: 8, size: 43, tilt: -9 }, { color: 'peach', left: 85, top: 69, size: 38, tilt: 7 },
 ] as const
 type BalloonStyle = CSSProperties & Record<'--balloon-left' | '--balloon-top' | '--balloon-size' | '--balloon-tilt', string>
 type HeroFlower = { id: number; x: number; y: number; icon: string; color: string; size: number; rotation: number }
