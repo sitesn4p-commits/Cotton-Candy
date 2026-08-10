@@ -1202,6 +1202,52 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
   .service-hero-art, .hire-hero-art { animation: none; }
 }
 
+/* Keep the editorial layout balanced on 2560 x 1440 desktop displays. */
+@media (min-width: 2200px) and (min-height: 1200px) {
+  .container { width: min(1720px, calc(100% - 12vw)); }
+  .nav-wrap { height: 102px; }
+  .site-header .brand { height: 86px; width: 86px; }
+  .header-phone { margin-left: 15px; }
+  .header-phone strong { font-size: 18px; }
+  .site-nav { gap: clamp(34px, 2vw, 48px); }
+  .site-nav a { font-size: 13px; }
+
+  .hero-landscape { min-height: 790px; padding: 132px 0 90px; }
+  .hero-landscape .hero-content.container { margin-left: max(8vw, 190px); width: min(44vw, 760px); }
+  .hero-landscape .hero-typed-heading { font-size: clamp(64px, 4.4vw, 88px); max-width: 760px; }
+  .hero-landscape .hero-copy { font-size: 18px; max-width: 585px; }
+  .hero-landscape .hero-photo-main { right: max(9vw, 220px); top: 95px; width: min(35vw, 700px); }
+  .hero-landscape .hero-photo-small { bottom: 55px; height: 280px; right: min(35vw, 640px); width: 230px; }
+  .hero-landscape .hero-note { bottom: 88px; right: max(5vw, 120px); }
+  .home-service-ticker { padding-left: max(80px, calc((100% - 1720px) / 2)); padding-right: max(80px, calc((100% - 1720px) / 2)); }
+
+  .home-intro-section { gap: clamp(95px, 9vw, 180px); padding: 166px 0; }
+  .home-intro-section .intro-images { height: 625px; }
+  .home-intro-section .intro-main { height: 578px; }
+  .home-intro-section .intro-small { height: 267px; }
+  .home-intro-section .intro-copy { max-width: 590px; padding: 70px 58px 56px; }
+
+  .home-specialities { padding: 138px 0; }
+  .home-specialities .container { gap: clamp(95px, 10vw, 200px); grid-template-columns: minmax(390px, .85fr) minmax(620px, 1.15fr); }
+  .home-specialities li { font-size: 15px; padding-bottom: 20px; padding-top: 22px; }
+
+  .services-preview { padding: 350px 0 165px; }
+  .services-preview::before { background-size: 350px auto; height: 350px; }
+  .services-preview .section-heading { margin-bottom: 58px; }
+  .service-cards-two { max-width: 1320px; }
+  .service-cards-two .service-card { min-height: 395px; padding: 40px; }
+  .service-cards-two .service-icon { margin: 52px 0 33px; }
+
+  .featured-section { gap: clamp(100px, 10vw, 205px); padding: 165px 0; }
+  .featured-photo { height: 600px; }
+  .featured-copy { max-width: 500px; }
+  .why-choose-section { padding: 140px 0; }
+  .why-choose-section .container { gap: clamp(90px, 9vw, 185px); }
+  .cta-section { min-height: 590px; }
+  .cta-content { max-width: 610px; }
+  .scroll-top { bottom: 34px; height: 52px; right: 34px; width: 52px; }
+}
+
 @media (max-width: 700px) {
   .gallery-category-filter { align-items: flex-start; flex-direction: column; gap: 13px; padding-bottom: 17px; }
   .gallery-category-filter .filter-pills { justify-content: flex-start; }
