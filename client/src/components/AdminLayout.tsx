@@ -6,7 +6,7 @@ import { AdminPushRegistration, storedAdminPushToken } from './AdminPushRegistra
 
 const adminLinks = [
   ['', 'Overview', '⌂'], ['services', 'Services', '✦'], ['hire', 'Hire collection', '◇'], ['categories', 'Categories', '▦'],
-  ['requests', 'Service requests', '◫'], ['active-orders', 'Active orders', '◉'], ['order-history', 'Order history', '◷'], ['order-notifications', 'Order notifications', '◌'], ['messages', 'Contact messages', '✉'], ['newsletter-subscribers', 'Newsletter subscribers', '✧'], ['gallery/images', 'Gallery images', '▧'],
+  ['requests', 'Service requests', '◫'], ['active-orders', 'Active orders', '◉'], ['order-history', 'Order history', '◷'], ['cancelled-orders', 'Cancelled orders', '⊘'], ['order-notifications', 'Order notifications', '◌'], ['messages', 'Contact messages', '✉'], ['newsletter-subscribers', 'Newsletter subscribers', '✧'], ['gallery/images', 'Gallery images', '▧'],
   ['gallery/videos', 'Gallery videos', '▶'], ['promotions', 'Promotions', '♡'], ['home-content', 'Home content', '◌'], ['page-artwork', 'Page artwork', '✦'],
 ] as const
 

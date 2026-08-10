@@ -33,6 +33,13 @@ function dateValue(value: unknown) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+function customerVisibleRequest(request: { toObject?: () => Record<string, unknown> } | Record<string, unknown>) {
+  const document = request as { toObject?: () => Record<string, unknown> }
+  const data: Record<string, unknown> = typeof document.toObject === 'function' ? document.toObject() : request as Record<string, unknown>
+  const { trackingId: _trackingId, ...visibleRequest } = data
+  return visibleRequest
+}
+
 router.get('/categories', async (req, res, next) => {
   try {
     const type = String(req.query.type || '')
@@ -120,23 +127,21 @@ router.get('/service-requests', async (req, res, next) => {
   try {
     const email = String(req.query.email || '').trim().toLowerCase()
     if (!email || !email.includes('@')) return res.status(400).json({ message: 'Enter the email address used for the order.' })
-    const requests = await ServiceRequest.find({ email }).select('trackingId type offeringName customerName email phone eventType eventDate notes status createdAt updatedAt hireDays unitPrice subtotal discountPercent discountAmount totalPrice promotionTitle advancePaymentComplete')
+    const requests = await ServiceRequest.find({ email }).select('type offeringName customerName email phone eventType eventDate notes status createdAt updatedAt hireDays unitPrice subtotal discountPercent discountAmount totalPrice promotionTitle advancePaymentComplete')
       .sort({ createdAt: -1 }).lean()
     return res.json(requests)
   } catch (error) { return next(error) }
 })
 
-router.patch('/service-requests/:trackingId/customer', async (req, res, next) => {
+router.patch('/service-requests/customer', async (req, res, next) => {
   try {
-    const trackingId = String(req.params.trackingId || '').trim().toUpperCase()
     const referenceId = String(req.body.referenceId || '').trim().toUpperCase()
     const email = String(req.body.email || '').trim().toLowerCase()
     const action = String(req.body.action || 'update').trim().toLowerCase()
-    if (!trackingId || !referenceId || !email) return res.status(400).json({ message: 'Enter both your email address and order reference ID.' })
-    if (trackingId !== referenceId) return res.status(400).json({ message: 'The reference ID does not match this order.' })
+    if (!referenceId || !email) return res.status(400).json({ message: 'Enter both your email address and order reference ID.' })
     if (!['update', 'cancel'].includes(action)) return res.status(400).json({ message: 'Choose a valid order action.' })
 
-    const request = await ServiceRequest.findOne({ trackingId, email })
+    const request = await ServiceRequest.findOne({ trackingId: referenceId, email })
     if (!request) return res.status(404).json({ message: 'We could not confirm that order with this email and reference ID.' })
     if (request.status === 'complete' || request.status === 'cancel') return res.status(400).json({ message: 'Completed or cancelled orders can no longer be changed online.' })
     if (!request.eventDate || !hasTenDayLeadTime(request.eventDate)) return res.status(400).json({ message: 'Online changes close 10 days before your event or hire start date. Please contact us for help.' })
@@ -146,7 +151,7 @@ router.patch('/service-requests/:trackingId/customer', async (req, res, next) =>
       await request.save()
       await OrderNotification.create({ request: request._id, type: 'cancelled', message: 'Customer cancelled this order online.', details: `${request.customerName} cancelled ${request.offeringName}.` })
       void sendAdminPush({ title: 'Order cancelled', body: `${request.customerName || 'A customer'} cancelled ${request.offeringName}.`, route: '/manage-cotton-candy/order-notifications' }).catch((error) => console.error('Could not send order push notification.', error))
-      return res.json({ message: 'Your order has been cancelled and our team has been notified.', request })
+      return res.json({ message: 'Your order has been cancelled and our team has been notified.', request: customerVisibleRequest(request) })
     }
 
     const eventDateInput = String(req.body.eventDate || '').trim()
@@ -186,7 +191,7 @@ router.patch('/service-requests/:trackingId/customer', async (req, res, next) =>
     await request.save()
     await OrderNotification.create({ request: request._id, type: 'updated', message: 'Customer updated this order online.', details: changed.length ? `Updated: ${changed.join(', ')}.` : 'Customer saved their order without changing any details.' })
     void sendAdminPush({ title: 'Order updated', body: `${request.customerName || 'A customer'} updated ${request.offeringName}.`, route: '/manage-cotton-candy/order-notifications' }).catch((error) => console.error('Could not send order push notification.', error))
-    return res.json({ message: 'Your changes have been saved and our team has been notified.', request })
+    return res.json({ message: 'Your changes have been saved and our team has been notified.', request: customerVisibleRequest(request) })
   } catch (error) { return next(error) }
 })
 

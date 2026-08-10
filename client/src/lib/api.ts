@@ -66,7 +66,7 @@ export const api = {
   offering: (offeringId: string) => cachedPublicRequest<Offering>(`/offerings/${offeringId}`),
   createServiceRequest: (body: Record<string, unknown>) => request<{ message: string; request: ServiceRequest }>('/service-requests', { method: 'POST', body }),
   ordersByEmail: (email: string) => request<ServiceRequest[]>(`/service-requests?email=${encodeURIComponent(email)}`),
-  updateCustomerOrder: (trackingId: string, body: Record<string, unknown>) => request<{ message: string; request: ServiceRequest }>(`/service-requests/${encodeURIComponent(trackingId)}/customer`, { method: 'PATCH', body }),
+  updateCustomerOrder: (body: Record<string, unknown>) => request<{ message: string; request: ServiceRequest }>('/service-requests/customer', { method: 'PATCH', body }),
   media: (kind?: 'image' | 'video') => cachedPublicRequest<MediaAsset[]>(`/media${kind ? `?kind=${kind}` : ''}`),
   promotions: () => cachedPublicRequest<Promotion[]>('/promotions'),
   featuredPromotion: () => cachedPublicRequest<Promotion | null>('/promotions/featured'),

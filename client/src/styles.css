@@ -508,6 +508,11 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .tracker-form > div { display: flex; }
 .tracker-form input { background: #fff9f9; border: 0; color: var(--ink); flex: 1; min-width: 0; outline: 0; padding: 15px 17px; }
 .tracker-form button { background: #e8a7b8; border: 0; color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: .6px; padding: 0 22px; text-transform: uppercase; }
+.tracker-form button:disabled { cursor: wait; opacity: .78; }
+.tracker-searching { align-items: center; color: #f2bdc9 !important; display: flex; font-size: 12px; gap: 8px; margin: 13px 0 0; }
+.tracker-search-spinner { animation: tracker-search-spin .75s linear infinite; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; height: 12px; width: 12px; }
+.tracker-form button .tracker-search-spinner { height: 11px; margin-right: 6px; vertical-align: -2px; width: 11px; }
+@keyframes tracker-search-spin { to { transform: rotate(360deg); } }
 .order-results { display: grid; gap: 10px; margin-top: 17px; }
 .tracked-request { align-items: flex-start; background: rgba(255,255,255,.08); display: flex; gap: 14px; margin: 0; padding: 15px; }
 .tracked-request strong { display: block; font: 19px var(--serif); }
