@@ -47,6 +47,12 @@ html:has(body.menu-open) { overflow: hidden; overscroll-behavior: none; }
 .admin-sidebar-new .brand, .admin-login-card .brand { height: 82px; position: relative; width: 148px; }
 .admin-sidebar-new .brand > *, .admin-login-card .brand > * { display: none; }
 .admin-sidebar-new .brand:before, .admin-login-card .brand:before { background: url('/cotton-candy-logo-web.png') center/contain no-repeat; content: ''; inset: 0; position: absolute; }
+.contact-details { display: grid; gap: 12px; }
+.contact-detail { align-items: start; border: 1px solid var(--line); color: var(--deep-rose); display: grid; gap: 5px; padding: 14px 16px; text-decoration: none; transition: background .2s, border-color .2s, transform .2s; }
+.contact-detail:hover { background: var(--soft-pink); border-color: var(--rose); transform: translateX(4px); }
+.contact-detail span { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; }
+.contact-detail strong { font: 18px/1.25 var(--serif); overflow-wrap: anywhere; }
+.contact-location { border-top: 1px solid var(--line); margin: 10px 0 0 !important; padding-top: 17px; }
 .header-phone { align-items: center; color: var(--deep-rose); display: inline-flex; font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 11px 0; position: relative; text-decoration: none; white-space: nowrap; }
 .header-phone:before { color: var(--muted); content: 'Call us'; font-size: 8px; left: 0; letter-spacing: 1.3px; position: absolute; text-transform: uppercase; top: -1px; }
 .header-phone:hover { color: var(--sage); }
@@ -195,6 +201,8 @@ html:has(body.menu-open) { overflow: hidden; overscroll-behavior: none; }
   .contact-page { gap: 45px; padding: 73px 0; }
   .contact-intro h1 { font-size: 48px; }
   .contact-details { margin-top: 30px; }
+  .contact-detail { padding: 13px 14px; }
+  .contact-detail strong { font-size: 16px; }
   .enquiry-form { padding: 25px 18px; }
   .enquiry-form .button { margin-top: 3px; width: 100%; }
   .store-hero { padding: 63px 0 57px; }
