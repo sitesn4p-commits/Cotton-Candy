@@ -398,27 +398,28 @@ router.get('/media', async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
-router.post('/media', upload.single('media'), async (req, res, next) => {
+router.post('/media', upload.array('media', 12), async (req, res, next) => {
   try {
     const kind = String(req.body.kind || '')
     const title = String(req.body.title || '').trim()
     const suppliedYoutubeUrl = String(req.body.youtubeUrl || '').trim()
     const embedUrl = youtubeEmbedUrl(suppliedYoutubeUrl)
     const category = String(req.body.category || '').replace(/\s+/g, ' ').trim()
+    const mediaFiles = Array.isArray(req.files) ? req.files : []
     if (!title || !validKinds.has(kind)) return res.status(400).json({ message: 'Add a title and media type.' })
     if (kind === 'image' && !category) return res.status(400).json({ message: 'Choose an existing gallery category or create a new one.' })
     if (suppliedYoutubeUrl && kind !== 'video') return res.status(400).json({ message: 'YouTube links can only be added to gallery videos.' })
     if (suppliedYoutubeUrl && !embedUrl) return res.status(400).json({ message: 'Add a valid YouTube video link.' })
-    if (req.file && embedUrl) return res.status(400).json({ message: 'Choose either a video upload or a YouTube link.' })
-    if (!req.file && !embedUrl) return res.status(400).json({ message: kind === 'video' ? 'Upload a video file or add a YouTube link.' : 'Upload an image file.' })
-    if (req.file && !req.file.mimetype.startsWith(`${kind}/`)) return res.status(400).json({ message: `Please upload a ${kind} file.` })
+    if (mediaFiles.length && embedUrl) return res.status(400).json({ message: 'Choose either a video upload or a YouTube link.' })
+    if (!mediaFiles.length && !embedUrl) return res.status(400).json({ message: kind === 'video' ? 'Upload a video file or add a YouTube link.' : 'Upload at least one image file.' })
+    if (kind === 'video' && mediaFiles.length > 1) return res.status(400).json({ message: 'Upload one video file at a time.' })
+    if (mediaFiles.some((file) => !file.mimetype.startsWith(`${kind}/`))) return res.status(400).json({ message: `Please upload ${kind} files only.` })
     if (embedUrl) {
       const media = await MediaAsset.create({ title, kind, category: category || 'celebrations', url: embedUrl, source: 'youtube' })
-      return res.status(201).json(media)
+      return res.status(201).json([media])
     }
-    if (!req.file) return res.status(400).json({ message: 'Upload a media file.' })
-    const asset = await uploadAsset(req.file, `cotton-candy/gallery/${kind}s`)
-    const media = await MediaAsset.create({ title, kind, category: category || 'celebrations', url: asset.secure_url, source: 'upload', publicId: asset.public_id })
+    const uploadedAssets = await Promise.all(mediaFiles.map((file) => uploadAsset(file, `cotton-candy/gallery/${kind}s`)))
+    const media = await MediaAsset.insertMany(uploadedAssets.map((asset) => ({ title, kind, category: category || 'celebrations', url: asset.secure_url, source: 'upload', publicId: asset.public_id })))
     return res.status(201).json(media)
   } catch (error) { return next(error) }
 })

@@ -389,6 +389,19 @@ export function GalleryImagesPage() {
   useEffect(() => { api.media('image').then(setMedia).catch(() => undefined) }, [])
   const categories = useMemo(() => [...new Set(media.map((asset) => asset.category.trim()).filter(Boolean))].sort((first, second) => first.localeCompare(second)), [media])
   const visibleMedia = useMemo(() => media.filter((asset) => category === 'all' || asset.category === category), [category, media])
+  const galleryGroups = useMemo(() => {
+    const groups: Array<{ key: string; title: string; category: string; items: MediaAsset[] }> = []
+    const indexes = new Map<string, number>()
+    visibleMedia.forEach((asset) => {
+      const key = `${asset.category.trim().toLocaleLowerCase()}::${asset.title.trim().toLocaleLowerCase()}`
+      const existingIndex = indexes.get(key)
+      if (existingIndex === undefined) {
+        indexes.set(key, groups.length)
+        groups.push({ key, title: asset.title, category: asset.category, items: [asset] })
+      } else groups[existingIndex].items.push(asset)
+    })
+    return groups
+  }, [visibleMedia])
   useEffect(() => { if (category !== 'all' && !categories.includes(category)) setCategory('all') }, [category, categories])
   useEffect(() => {
     if (!selectedImage) return
@@ -396,7 +409,7 @@ export function GalleryImagesPage() {
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [selectedImage])
-  return <><GalleryHero kind="image" /><section className="gallery-page container"><div className="gallery-switch"><Link className="active" to="/gallery/images">Images</Link><Link to="/gallery/videos">Videos</Link></div>{media.length ? <><div className="gallery-category-filter"><p className="eyebrow">Browse by celebration</p><FilterButtons current={category} onChange={setCategory} options={[['all', 'All images'], ...categories.map((item) => [item, item] as [string, string])]} /></div>{visibleMedia.length ? <div className="masonry-gallery">{visibleMedia.map((asset, index) => <figure className={`gallery-item${index % 3 === 0 ? ' tall' : ''}`} key={asset._id}><button className="gallery-image-button" type="button" onClick={() => setSelectedImage(asset)} aria-label={`View ${asset.title} full screen`}><img src={asset.url} alt={asset.title} /></button><figcaption><small>{asset.category}</small>{asset.title}</figcaption></figure>)}</div> : <p className="empty-state">There are no images in this category yet.</p>}</> : <p className="empty-state">Our celebration images are coming soon.</p>}</section>{selectedImage ? <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedImage.title} full screen image`} onClick={() => setSelectedImage(null)}><div className="gallery-lightbox-content" onClick={(event) => event.stopPropagation()}><button className="gallery-lightbox-close" type="button" aria-label="Close full screen image" onClick={() => setSelectedImage(null)}>×</button><img src={selectedImage.url} alt={selectedImage.title} /><p>{selectedImage.category} · {selectedImage.title}</p></div></div> : null}</>
+  return <><GalleryHero kind="image" /><section className="gallery-page container"><div className="gallery-switch"><Link className="active" to="/gallery/images">Images</Link><Link to="/gallery/videos">Videos</Link></div>{media.length ? <><div className="gallery-category-filter"><p className="eyebrow">Browse by celebration</p><FilterButtons current={category} onChange={setCategory} options={[['all', 'All images'], ...categories.map((item) => [item, item] as [string, string])]} /></div>{galleryGroups.length ? <div className="gallery-title-groups">{galleryGroups.map((group) => <section className="gallery-title-group" key={group.key}><header className="gallery-title-divider"><span /><div><p>{group.category}</p><h2>{group.title}</h2></div><span /></header><div className="masonry-gallery gallery-title-masonry">{group.items.map((asset, index) => <figure className={`gallery-item${index % 3 === 0 ? ' tall' : ''}`} key={asset._id}><button className="gallery-image-button" type="button" onClick={() => setSelectedImage(asset)} aria-label={`View ${asset.title} full screen`}><img src={asset.url} alt={asset.title} /></button><figcaption><small>{asset.category}</small>{asset.title}</figcaption></figure>)}</div></section>)}</div> : <p className="empty-state">There are no images in this category yet.</p>}</> : <p className="empty-state">Our celebration images are coming soon.</p>}</section>{selectedImage ? <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedImage.title} full screen image`} onClick={() => setSelectedImage(null)}><div className="gallery-lightbox-content" onClick={(event) => event.stopPropagation()}><button className="gallery-lightbox-close" type="button" aria-label="Close full screen image" onClick={() => setSelectedImage(null)}>×</button><img src={selectedImage.url} alt={selectedImage.title} /><p>{selectedImage.category} · {selectedImage.title}</p></div></div> : null}</>
 }
 
 export function ContactPage() {

@@ -447,7 +447,7 @@ export function AdminMediaPage({ kind }: { kind: 'image' | 'video' }) {
       const created = await api.createMedia(token, form)
       formElement.reset()
       await load()
-      notify({ title: created.source === 'youtube' ? 'YouTube video added' : 'Gallery item uploaded', message: `Your ${kind} is now visible in the gallery.` })
+      notify({ title: created[0]?.source === 'youtube' ? 'YouTube video added' : 'Gallery item uploaded', message: `Your ${kind} is now visible in the gallery.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to upload gallery item.')) }
   }
 
@@ -486,13 +486,13 @@ export function AdminGalleryImagesPage() {
     form.set('category', category)
     setError(null)
     try {
-      await api.createMedia(token, form)
+      const created = await api.createMedia(token, form)
       formElement.reset()
       setSelectedCategory(category)
       setNewCategory('')
       setCategoryMode('existing')
       await load()
-      notify({ title: 'Gallery image uploaded', message: `${category} is now available as a gallery filter on the website.` })
+      notify({ title: `${created.length} gallery image${created.length === 1 ? '' : 's'} uploaded`, message: `${category} is now available as a gallery filter. Images with this title appear together on the website.` })
     } catch (reason) { setError(messageFor(reason, 'Unable to upload gallery image.')) }
   }
 
@@ -505,7 +505,7 @@ export function AdminGalleryImagesPage() {
     } catch (reason) { setError(messageFor(reason, 'Unable to remove gallery image.')) }
   }
 
-  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Cloudinary gallery upload</p><h1>Gallery <em>images.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Add image"><form className="admin-form-grid" onSubmit={submit}><label>Title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category option<select value={categoryMode} onChange={(event) => setCategoryMode(event.target.value as 'new' | 'existing')}><option value="new">Create a new category</option><option disabled={!galleryCategories.length} value="existing">Use an existing category</option></select></label>{categoryMode === 'existing' ? <label className="admin-full">Existing gallery category<select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required><option value="">Select a category</option>{galleryCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label> : <label className="admin-full">New gallery category<input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="e.g. Weddings" required /></label>}<p className="admin-help admin-full">Each category you use becomes a filter on the public Gallery Images page.</p><label className="file-input admin-full">Image file<input name="media" type="file" accept="image/*" required /></label><button className="admin-button" type="submit">Add image</button></form></Panel><Panel title="Published images">{media.length ? <div className="admin-media-grid">{media.map((item) => <article key={item._id}><MediaPreview item={item} /><div><span className="admin-media-category">{item.category}</span><strong>{item.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div> : <EmptyState>Upload your first gallery image.</EmptyState>}</Panel></div></section>
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Cloudinary gallery upload</p><h1>Gallery <em>images.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Add images"><form className="admin-form-grid" onSubmit={submit}><label>Gallery title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category option<select value={categoryMode} onChange={(event) => setCategoryMode(event.target.value as 'new' | 'existing')}><option value="new">Create a new category</option><option disabled={!galleryCategories.length} value="existing">Use an existing category</option></select></label>{categoryMode === 'existing' ? <label className="admin-full">Existing gallery category<select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required><option value="">Select a category</option>{galleryCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label> : <label className="admin-full">New gallery category<input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="e.g. Weddings" required /></label>}<p className="admin-help admin-full">Select up to 12 images. The same title and category apply to every selected image, and the website displays them together under that title.</p><label className="file-input admin-full">Images<input name="media" type="file" accept="image/*" multiple required /></label><button className="admin-button" type="submit">Upload images</button></form></Panel><Panel title="Published images">{media.length ? <div className="admin-media-grid">{media.map((item) => <article key={item._id}><MediaPreview item={item} /><div><span className="admin-media-category">{item.category}</span><strong>{item.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div> : <EmptyState>Upload your first gallery image.</EmptyState>}</Panel></div></section>
 }
 
 export function AdminPromotionsPage() {
