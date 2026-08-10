@@ -607,10 +607,6 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .admin-sidebar-bottom { border-top: 1px solid rgba(229, 223, 214, .2); display: grid; gap: 3px; margin-top: auto; padding: 16px 13px 0; }
 .admin-sidebar-bottom a, .admin-sidebar-bottom button { align-items: center; background: transparent; border: 0; color: #cdb9c0; cursor: pointer; display: flex; font: 700 10px var(--sans); gap: 8px; letter-spacing: .55px; min-height: 34px; padding: 0; text-align: left; text-transform: uppercase; }
 .admin-sidebar-bottom a:hover, .admin-sidebar-bottom button:hover { color: white; }
-.admin-sidebar-bottom .admin-push-action { background: transparent; border: 1px solid rgba(248, 244, 243, .42); border-radius: 6px; color: #fff7f1; font-weight: 700; justify-content: center; letter-spacing: .7px; margin-bottom: 5px; padding: 10px 12px; text-align: center; transition: background .2s ease, transform .2s ease; }
-.admin-sidebar-bottom .admin-push-action:hover:not(:disabled) { background: rgba(248, 244, 243, .16); transform: translateY(-1px); }
-.admin-sidebar-bottom .admin-push-action:disabled { cursor: default; opacity: .68; }
-
 @media (min-width: 801px) {
   .admin-workspace { height: 100dvh; min-height: 0; overflow: hidden; }
   .admin-sidebar-new { align-self: stretch; height: 100dvh; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }

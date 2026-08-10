@@ -10,4 +10,7 @@ client/android/app/src/main/assets/capacitor.plugins.json
 server/uploads/
 client/android/app/google-services.json
 firebase-service-account.json
+Cotton-Candy-Admin-v1.0-debug.apk
+client/android/
+client/src-tauri/
 *.tsbuildinfo

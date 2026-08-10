@@ -35,12 +35,31 @@ type TemplateEmailInput = {
   variables: Record<string, string | number>
 }
 
+type AdminActivityEmailInput = {
+  title: string
+  subject: string
+  customerName?: string
+  customerEmail?: string
+  details: Array<{ label: string; value: string | number | undefined }>
+}
+
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character] || character)
 }
 
 function messageHtml(value: string) {
   return escapeHtml(value).split(/\r?\n/).filter(Boolean).map((paragraph) => `<p style="margin:0 0 16px;">${paragraph}</p>`).join('')
+}
+
+function adminActivityHtml(input: AdminActivityEmailInput) {
+  const customerName = escapeHtml(input.customerName || 'Customer')
+  const customerEmail = input.customerEmail?.trim()
+  const emailDetail = customerEmail ? `<a href="mailto:${escapeHtml(customerEmail)}" style="color:#ae6965;">${escapeHtml(customerEmail)}</a>` : ''
+  const details = input.details
+    .filter(({ value }) => value !== undefined && String(value).trim())
+    .map(({ label, value }) => `<tr><td style="border-bottom:1px solid #e5dfd6;color:#6f6d63;font-size:12px;padding:10px 12px 10px 0;vertical-align:top;width:38%;">${escapeHtml(label)}</td><td style="border-bottom:1px solid #e5dfd6;color:#38382f;font-size:13px;line-height:1.55;padding:10px 0;white-space:pre-wrap;">${escapeHtml(String(value))}</td></tr>`)
+    .join('')
+  return `<div style="background:#f4f0ea;color:#38382f;font-family:Arial,sans-serif;padding:32px 16px;"><main style="background:#fffdfa;margin:0 auto;max-width:620px;padding:34px;"><p style="color:#ae6965;font-size:11px;font-weight:700;letter-spacing:1.6px;margin:0 0 16px;text-transform:uppercase;">Cotton Candy Event Deco · Website activity</p><h1 style="font-family:Georgia,serif;font-size:32px;font-weight:400;line-height:1.14;margin:0 0 18px;">${escapeHtml(input.title)}</h1><p style="font-size:16px;line-height:1.65;margin:0 0 22px;"><strong>${customerName}</strong>${emailDetail ? ` · ${emailDetail}` : ''}</p><table role="presentation" style="border-collapse:collapse;width:100%;">${details}</table></main></div>`
 }
 
 function createUnsubscribeToken(requestId: string, email: string) {
@@ -69,6 +88,25 @@ async function sendTemplateEmail(resend: Resend, input: TemplateEmailInput) {
     ...(env.emailReplyTo ? { replyTo: env.emailReplyTo } : {}),
   })
   if (error) throw new Error(error.message || 'Resend could not deliver this template email.')
+  return data?.id || ''
+}
+
+export async function sendAdminActivityEmail(input: AdminActivityEmailInput) {
+  const resend = configuredResend()
+  const details = input.details
+    .filter(({ value }) => value !== undefined && String(value).trim())
+    .map(({ label, value }) => `${label}: ${String(value)}`)
+    .join('\n')
+  const text = `${input.title}\n\nCustomer: ${input.customerName || 'Customer'}${input.customerEmail ? `\nEmail: ${input.customerEmail}` : ''}${details ? `\n\n${details}` : ''}`
+  const { data, error } = await resend.emails.send({
+    from: env.emailFrom,
+    to: [env.adminNotificationEmail],
+    subject: input.subject,
+    html: adminActivityHtml(input),
+    text,
+    ...(input.customerEmail ? { replyTo: input.customerEmail } : env.emailReplyTo ? { replyTo: env.emailReplyTo } : {}),
+  })
+  if (error) throw new Error(error.message || 'Resend could not deliver the admin activity email.')
   return data?.id || ''
 }
 

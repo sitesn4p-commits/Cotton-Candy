@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import { AdminDevice } from '../models/AdminDevice.js'
 import { Category } from '../models/Category.js'
 import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
@@ -10,7 +9,7 @@ import { Promotion } from '../models/Promotion.js'
 import { PromotionEmail } from '../models/PromotionEmail.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
-import { type AuthenticatedRequest, requireAdmin, requireAuth } from '../middleware/auth.js'
+import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { upload } from '../middleware/upload.js'
 import { removeAsset, uploadAsset } from '../services/cloudinary.js'
 import { sendActivationEmail, sendCompletionEmail, sendPromotionEmail } from '../services/email.js'
@@ -69,31 +68,6 @@ function uploadedFiles(files: Express.Request['files'], field: string) {
 }
 
 router.use(requireAuth, requireAdmin)
-
-router.post('/push-devices', async (req, res, next) => {
-  try {
-    const token = String(req.body.token || '').trim()
-    const platform = String(req.body.platform || '')
-    const userAgent = String(req.body.userAgent || '').trim().slice(0, 500)
-    const adminEmail = (req as AuthenticatedRequest).auth?.email || ''
-    if (!token || token.length > 4096) return res.status(400).json({ message: 'A valid notification device token is required.' })
-    if (!['web', 'android', 'desktop'].includes(platform)) return res.status(400).json({ message: 'Choose a valid device platform.' })
-    await AdminDevice.findOneAndUpdate(
-      { token },
-      { $set: { platform, adminEmail, userAgent, active: true, lastSeenAt: new Date() } },
-      { new: true, upsert: true, setDefaultsOnInsert: true },
-    )
-    return res.status(204).send()
-  } catch (error) { return next(error) }
-})
-
-router.delete('/push-devices', async (req, res, next) => {
-  try {
-    const token = String(req.body.token || '').trim()
-    if (token) await AdminDevice.updateOne({ token }, { $set: { active: false } })
-    return res.status(204).send()
-  } catch (error) { return next(error) }
-})
 
 router.get('/dashboard', async (_req, res, next) => {
   try {

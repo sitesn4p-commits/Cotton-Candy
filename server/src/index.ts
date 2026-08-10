@@ -15,9 +15,6 @@ const clientOrigins = [...new Set([
   'http://127.0.0.1:5173',
   'http://localhost',
   'https://localhost',
-  'capacitor://localhost',
-  'tauri://localhost',
-  'https://tauri.localhost',
 ])]
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
