@@ -103,6 +103,7 @@ export const api = {
   markMessageRead: (token: string, messageId: string, read: boolean) => request<ContactMessage>(`/admin/messages/${messageId}/read`, { method: 'PATCH', body: { read }, token }),
   adminMedia: (token: string, kind?: 'image' | 'video') => request<MediaAsset[]>(`/admin/media${kind ? `?kind=${kind}` : ''}`, { token }),
   createMedia: (token: string, form: FormData) => request<MediaAsset[]>('/admin/media', { method: 'POST', body: form, token }),
+  updateMediaGroup: (token: string, mediaIds: string[], body: { title: string; category: string }) => request<MediaAsset[]>('/admin/media/group', { method: 'PATCH', body: { ...body, mediaIds }, token }),
   deleteMedia: (token: string, mediaId: string) => request<void>(`/admin/media/${mediaId}`, { method: 'DELETE', token }),
   adminPromotions: (token: string) => request<Promotion[]>('/admin/promotions', { token }),
   createPromotion: (token: string, form: FormData) => request<Promotion>('/admin/promotions', { method: 'POST', body: form, token }),

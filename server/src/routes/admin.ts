@@ -424,6 +424,19 @@ router.post('/media', upload.array('media', 12), async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
+router.patch('/media/group', async (req, res, next) => {
+  try {
+    const mediaIds = Array.isArray(req.body.mediaIds) ? [...new Set(req.body.mediaIds.map((value: unknown) => String(value).trim()).filter(Boolean))] : []
+    const title = String(req.body.title || '').replace(/\s+/g, ' ').trim()
+    const category = String(req.body.category || '').replace(/\s+/g, ' ').trim()
+    if (!mediaIds.length || !title || !category) return res.status(400).json({ message: 'Add a title, category and at least one image.' })
+    const media = await MediaAsset.find({ _id: { $in: mediaIds }, kind: 'image' })
+    if (media.length !== mediaIds.length) return res.status(404).json({ message: 'One or more gallery images could not be found.' })
+    await MediaAsset.updateMany({ _id: { $in: mediaIds } }, { $set: { title, category } })
+    return res.json(await MediaAsset.find({ _id: { $in: mediaIds } }).sort({ createdAt: -1 }))
+  } catch (error) { return next(error) }
+})
+
 router.delete('/media/:mediaId', async (req, res, next) => {
   try {
     const media = await MediaAsset.findByIdAndDelete(req.params.mediaId)

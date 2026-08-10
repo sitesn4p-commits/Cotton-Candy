@@ -486,6 +486,8 @@ export function AdminMediaPage({ kind }: { kind: 'image' | 'video' }) {
   return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">{kind === 'video' ? 'Gallery video upload or YouTube link' : 'Cloudinary gallery upload'}</p><h1>Gallery <em>{kind}s.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title={`Add ${kind}`}><form className="admin-form-grid" onSubmit={submit}><label>Title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category<input name="category" placeholder="e.g. Birthdays" /></label>{kind === 'video' ? <><label className="file-input admin-full">Upload video file (optional)<input name="media" type="file" accept="video/*" /></label><p className="admin-help admin-full">Or add a YouTube link instead. Use one option only.</p><label className="admin-full">YouTube video URL<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label></> : <label className="file-input admin-full">Image file<input name="media" type="file" accept="image/*" required /></label>}<button className="admin-button" type="submit">Add {kind}</button></form></Panel><Panel title={`Published ${kind}s`}>{media.length ? <div className="admin-media-grid">{media.map((item) => <article key={item._id}><MediaPreview item={item} /><div><strong>{item.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div> : <EmptyState>Upload your first gallery {kind}.</EmptyState>}</Panel></div></section>
 }
 
+type GalleryImageGroup = { key: string; title: string; category: string; items: MediaAsset[] }
+
 export function AdminGalleryImagesPage() {
   const token = useAdminToken()
   const { confirm, notify } = useFeedback()
@@ -494,7 +496,21 @@ export function AdminGalleryImagesPage() {
   const [categoryMode, setCategoryMode] = useState<'new' | 'existing'>('new')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [newCategory, setNewCategory] = useState('')
+  const [editingGroup, setEditingGroup] = useState<GalleryImageGroup | null>(null)
   const galleryCategories = useMemo(() => [...new Set(media.map((item) => item.category.trim()).filter(Boolean))].sort((first, second) => first.localeCompare(second)), [media])
+  const galleryGroups = useMemo(() => {
+    const groups: GalleryImageGroup[] = []
+    const indexes = new Map<string, number>()
+    media.forEach((item) => {
+      const key = `${item.category.trim().toLocaleLowerCase()}::${item.title.trim().toLocaleLowerCase()}`
+      const index = indexes.get(key)
+      if (index === undefined) {
+        indexes.set(key, groups.length)
+        groups.push({ key, title: item.title, category: item.category, items: [item] })
+      } else groups[index].items.push(item)
+    })
+    return groups
+  }, [media])
   const load = useCallback(() => api.adminMedia(token, 'image').then((items) => { setMedia(items); setError(null) }).catch((reason: unknown) => setError(messageFor(reason, 'Unable to load gallery images.'))), [token])
 
   useEffect(() => { void load() }, [load])
@@ -528,7 +544,34 @@ export function AdminGalleryImagesPage() {
     } catch (reason) { setError(messageFor(reason, 'Unable to remove gallery image.')) }
   }
 
-  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Cloudinary gallery upload</p><h1>Gallery <em>images.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Add images"><form className="admin-form-grid" onSubmit={submit}><label>Gallery title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category option<select value={categoryMode} onChange={(event) => setCategoryMode(event.target.value as 'new' | 'existing')}><option value="new">Create a new category</option><option disabled={!galleryCategories.length} value="existing">Use an existing category</option></select></label>{categoryMode === 'existing' ? <label className="admin-full">Existing gallery category<select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required><option value="">Select a category</option>{galleryCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label> : <label className="admin-full">New gallery category<input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="e.g. Weddings" required /></label>}<p className="admin-help admin-full">Select up to 12 images. The same title and category apply to every selected image, and the website displays them together under that title.</p><label className="file-input admin-full">Images<input name="media" type="file" accept="image/*" multiple required /></label><button className="admin-button" type="submit">Upload images</button></form></Panel><Panel title="Published images">{media.length ? <div className="admin-media-grid">{media.map((item) => <article key={item._id}><MediaPreview item={item} /><div><span className="admin-media-category">{item.category}</span><strong>{item.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div> : <EmptyState>Upload your first gallery image.</EmptyState>}</Panel></div></section>
+  const saveGroup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingGroup) return
+    const form = new FormData(event.currentTarget)
+    const title = String(form.get('title') || '').trim()
+    const category = String(form.get('category') || '').trim()
+    if (!title || !category) return setError('Add both a gallery title and category.')
+    setError(null)
+    try {
+      const updated = await api.updateMediaGroup(token, editingGroup.items.map((item) => item._id), { title, category })
+      const updatedItems = new Map(updated.map((item) => [item._id, item]))
+      setMedia((current) => current.map((item) => updatedItems.get(item._id) || item))
+      setEditingGroup(null)
+      notify({ title: 'Gallery group updated', message: `${updated.length} image${updated.length === 1 ? '' : 's'} now appear together under “${title}”.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to update this image group.')) }
+  }
+
+  const removeGroup = async (group: GalleryImageGroup) => {
+    if (!await confirm({ title: `Delete ${group.items.length} image${group.items.length === 1 ? '' : 's'}?`, message: `Every image under “${group.title}” will be permanently removed from the gallery.`, confirmLabel: 'Delete image group', tone: 'error' })) return
+    try {
+      await Promise.all(group.items.map((item) => api.deleteMedia(token, item._id)))
+      setMedia((current) => current.filter((item) => !group.items.some((groupItem) => groupItem._id === item._id)))
+      setEditingGroup(null)
+      notify({ title: 'Gallery group deleted', message: `${group.title} and its images have been removed.` })
+    } catch (reason) { setError(messageFor(reason, 'Unable to delete this image group.')) }
+  }
+
+  return <section className="admin-page"><div className="admin-page-heading"><div><p className="eyebrow">Cloudinary gallery upload</p><h1>Gallery <em>images.</em></h1></div></div><ErrorNotice error={error} /><div className="admin-split"><Panel title="Add an image group"><form className="admin-form-grid" onSubmit={submit}><label>Gallery title<input name="title" required placeholder="e.g. Sarah’s baby shower" /></label><label>Category option<select value={categoryMode} onChange={(event) => setCategoryMode(event.target.value as 'new' | 'existing')}><option value="new">Create a new category</option><option disabled={!galleryCategories.length} value="existing">Use an existing category</option></select></label>{categoryMode === 'existing' ? <label className="admin-full">Existing gallery category<select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required><option value="">Select a category</option>{galleryCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label> : <label className="admin-full">New gallery category<input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="e.g. Weddings" required /></label>}<p className="admin-help admin-full">Select up to 12 images. Every selected image becomes one gallery group with this title and category. The website shows the group under its own heading.</p><label className="file-input admin-full">Images<input name="media" type="file" accept="image/*" multiple required /></label><button className="admin-button" type="submit">Upload image group</button></form></Panel><Panel title="Published image groups">{galleryGroups.length ? <div className="gallery-admin-groups">{galleryGroups.map((group) => <section className="gallery-admin-group" key={group.key}><header><div><p>{group.category}</p><h3>{group.title}</h3><span>{group.items.length} image{group.items.length === 1 ? '' : 's'}</span></div><div className="gallery-admin-group-actions"><button type="button" onClick={() => setEditingGroup(group)}>Edit group</button><button type="button" onClick={() => void removeGroup(group)}>Delete all</button></div></header><div className="admin-media-grid">{group.items.map((item) => <article key={item._id}><MediaPreview item={item} /><div><strong>{group.title}</strong><button type="button" onClick={() => void removeMedia(item)}>Remove</button></div></article>)}</div></section>)}</div> : <EmptyState>Upload your first gallery image group.</EmptyState>}</Panel></div>{editingGroup ? <Dialog title="Edit image group" onClose={() => setEditingGroup(null)}><form className="admin-form-grid" onSubmit={saveGroup}><label className="admin-full">Gallery title<input name="title" defaultValue={editingGroup.title} required /></label><label className="admin-full">Gallery category<input name="category" defaultValue={editingGroup.category} required /></label><p className="admin-help admin-full">This updates all {editingGroup.items.length} images in the group. The website heading and filter category update together.</p><div className="order-detail-actions admin-full"><button className="admin-secondary-button" type="button" onClick={() => setEditingGroup(null)}>Cancel</button><button className="admin-button" type="submit">Save group changes</button></div></form></Dialog> : null}</section>
 }
 
 export function AdminPromotionsPage() {

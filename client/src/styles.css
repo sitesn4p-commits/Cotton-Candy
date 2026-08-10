@@ -1125,6 +1125,17 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .gallery-title-masonry { margin-top: 27px; }
 .admin-media-category { color: var(--deep-rose); display: block; font-size: 9px; font-weight: 700; letter-spacing: .8px; margin-bottom: 4px; text-transform: uppercase; }
 .admin-media-grid strong { display: block; }
+.gallery-admin-groups { display: grid; gap: 22px; }
+.gallery-admin-group { border: 1px solid #e3d7d2; padding: 17px; }
+.gallery-admin-group > header { align-items: center; border-bottom: 1px solid #e8ded9; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 15px; padding-bottom: 14px; }
+.gallery-admin-group > header p { color: var(--deep-rose); font-size: 9px; font-weight: 700; letter-spacing: .9px; margin: 0 0 5px; text-transform: uppercase; }
+.gallery-admin-group > header h3 { font: 25px var(--serif); margin: 0; }
+.gallery-admin-group > header span { color: var(--muted); display: block; font-size: 10px; margin-top: 4px; }
+.gallery-admin-group-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.gallery-admin-group-actions button { background: #fffdfb; border: 1px solid #cbb5bc; color: #704651; cursor: pointer; font: 700 9px var(--sans); padding: 8px 9px; text-transform: uppercase; }
+.gallery-admin-group-actions button:hover { background: #fff2f4; border-color: var(--deep-rose); color: #783a4a; }
+.gallery-admin-group-actions button:last-child { border-color: #cf9ca5; color: #914657; }
+@media (max-width: 520px) { .gallery-admin-group { padding: 14px; } .gallery-admin-group > header { align-items: flex-start; flex-direction: column; } .gallery-admin-group-actions { justify-content: flex-start; } }
 
 /* Custom services and hire collection hero artwork */
 .collection-hero { isolation: isolate; min-height: 500px; overflow: hidden; }
