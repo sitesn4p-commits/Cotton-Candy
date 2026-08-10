@@ -1189,6 +1189,10 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .hire-spark-two { bottom: 51px; color: #96ad8b; right: 135px; }
 @keyframes collection-art-float { 0%, 100% { transform: translateY(-50%) rotate(0deg); } 50% { transform: translateY(calc(-50% - 10px)) rotate(1deg); } }
 
+@media (min-width: 801px) {
+  .collection-hero-content.container { margin-left: max(6vw, 86px); margin-right: 0; width: min(44vw, 650px); }
+}
+
 @media (max-width: 800px) {
   .collection-hero { min-height: 500px; }
   .collection-hero-content { padding-top: 72px; }
@@ -1219,6 +1223,7 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
   .hero-landscape .hero-photo-main { right: max(9vw, 220px); top: 95px; width: min(35vw, 700px); }
   .hero-landscape .hero-photo-small { bottom: 55px; height: 280px; right: min(35vw, 640px); width: 230px; }
   .hero-landscape .hero-note { bottom: 88px; right: max(5vw, 120px); }
+  .collection-hero-content.container { margin-left: max(8vw, 190px); margin-right: 0; width: min(40vw, 720px); }
   .home-service-ticker { padding-left: max(80px, calc((100% - 1720px) / 2)); padding-right: max(80px, calc((100% - 1720px) / 2)); }
 
   .home-intro-section { gap: clamp(95px, 9vw, 180px); padding: 166px 0; }
