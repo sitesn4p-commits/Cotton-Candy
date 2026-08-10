@@ -1218,9 +1218,10 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 
   .hero-landscape { min-height: 790px; padding: 126px 0 90px; }
   .hero-landscape .hero-content.container { margin-left: max(6vw, 150px); width: min(47vw, 810px); }
-  .hero-landscape .hero-typed-heading { font-size: clamp(58px, 3.45vw, 72px); letter-spacing: -2.9px; max-width: 810px; }
-  .hero-landscape .hero-typed-line-primary { display: block; white-space: nowrap; }
-  .hero-landscape .hero-typed-line-accent { display: block; max-width: 760px; }
+  .hero-landscape .hero-typed-heading { font-size: clamp(58px, 3.45vw, 72px); letter-spacing: -2.9px; line-height: .91; max-width: none; width: 980px; }
+  .hero-landscape .hero-typed-heading > br { display: none; }
+  .hero-landscape .hero-typed-line-primary { display: block; max-width: 510px; white-space: normal; }
+  .hero-landscape .hero-typed-line-accent { display: block; margin-top: 0; max-width: 900px; }
   .hero-landscape .hero-copy { font-size: 16px; line-height: 1.55; max-width: 800px; }
   .hero-landscape .hero-slider-art { right: max(7vw, 175px); top: 92px; width: min(38vw, 780px); }
   .hero-landscape .hero-balloons { display: block !important; opacity: 1; }
