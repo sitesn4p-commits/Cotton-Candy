@@ -89,7 +89,7 @@ function SiteMotionEffects() {
   const { pathname } = useLocation()
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      const revealTargets = Array.from(document.querySelectorAll<HTMLElement>('.site-main > section:not(.hero), .site-main .collection-choice > a, .site-main .offering-card, .site-main .value-card, .site-main .promotion-card, .site-main .gallery-item, .site-main .contact-page > *'))
+      const revealTargets = Array.from(document.querySelectorAll<HTMLElement>('.site-main > section:not(.hero), .site-main .collection-choice > a, .site-main .offering-card, .site-main .value-card, .site-main .promotion-card, .site-main .contact-page > *'))
       revealTargets.forEach((target, index) => { target.classList.add('scroll-reveal'); target.style.setProperty('--reveal-delay', `${index % 4 * 75}ms`) })
       const observer = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target) } }), { rootMargin: '0px 0px -9% 0px', threshold: .08 })
       revealTargets.forEach((target) => observer.observe(target))
