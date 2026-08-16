@@ -13,7 +13,7 @@ const heroBalloons = [
 ] as const
 type BalloonStyle = CSSProperties & Record<'--balloon-left' | '--balloon-top' | '--balloon-size' | '--balloon-tilt', string>
 type HeroFlower = { id: number; x: number; y: number; icon: string; color: string; size: number; rotation: number }
-const lkrFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', maximumFractionDigits: 0 })
+const lkrFormatter = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 })
 const hireDurationOptions = [1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30]
 function formatLkr(amount: number | undefined) { return lkrFormatter.format(typeof amount === 'number' && Number.isFinite(amount) ? amount : 0) }
 
@@ -138,7 +138,16 @@ function PageHero({ eyebrow, title, children, className, style }: { eyebrow: str
 
 function GalleryHero({ kind }: { kind: 'image' | 'video' }) {
   const imageGallery = kind === 'image'
+  const [artwork, setArtwork] = useState<Pick<HomeContent, 'galleryHeroUrl'>>({ galleryHeroUrl: '' })
+  useEffect(() => { api.homeContent().then(setArtwork).catch(() => undefined) }, [])
+  if (artwork.galleryHeroUrl) return <GalleryHeroWithArtwork kind={kind} imageUrl={artwork.galleryHeroUrl} />
   return <section className="page-hero page-hero-gallery"><span className="gallery-hero-glow gallery-hero-glow-one" aria-hidden="true" /><span className="gallery-hero-glow gallery-hero-glow-two" aria-hidden="true" /><div className="container"><div className="gallery-hero-copy"><p className="eyebrow">Our little world of pretty</p><h1>{imageGallery ? <>Moments made to<br /><em>be remembered.</em></> : <>See the <em>magic</em><br />come to life.</>}</h1><p>{imageGallery ? 'A living scrapbook of pastel parties, thoughtful details and celebrations made with love.' : 'A little motion, a lot of joy and every celebration coming to life.'}</p><div className="gallery-hero-tags"><span>Weddings</span><span>Birthdays</span><span>Baby showers</span></div></div><div className="gallery-hero-art" aria-hidden="true"><span className="gallery-confetti gallery-confetti-one" /><span className="gallery-confetti gallery-confetti-two" /><span className="gallery-confetti gallery-confetti-three" /><div className="gallery-memory-card gallery-memory-card-main"><span className="gallery-memory-stamp">CC</span><span className="gallery-memory-balloon gallery-memory-balloon-one" /><span className="gallery-memory-balloon gallery-memory-balloon-two" /><span className="gallery-memory-balloon gallery-memory-balloon-three" /><span className="gallery-memory-bow" /><span className="gallery-memory-caption">made to remember</span></div><div className="gallery-memory-card gallery-memory-card-side"><span>✦</span><i /></div><div className="gallery-memory-card gallery-memory-card-mini"><span>♥</span><i /></div><div className="gallery-memory-ribbon">celebrate<br /><em>every detail</em></div></div></div></section>
+}
+
+function GalleryHeroWithArtwork({ kind, imageUrl }: { kind: 'image' | 'video'; imageUrl: string }) {
+  const imageGallery = kind === 'image'
+  const style = { '--gallery-artwork': `url("${imageUrl}")` } as CSSProperties & Record<'--gallery-artwork', string>
+  return <PageHero eyebrow="Our little world of pretty" className="page-hero-gallery page-hero-gallery-uploaded" style={style} title={imageGallery ? <>Moments made to<br /><em>be remembered.</em></> : <>See the <em>magic</em><br />come to life.</>}><p>{imageGallery ? 'A living scrapbook of pastel parties, thoughtful details and celebrations made with love.' : 'A little motion, a lot of joy and every celebration coming to life.'}</p><div className="gallery-hero-tags"><span>Weddings</span><span>Birthdays</span><span>Baby showers</span></div></PageHero>
 }
 
 function categoryName(category: Offering['category']) { return typeof category === 'string' ? category : category.name }
@@ -262,7 +271,11 @@ function CollectionHeroArtwork({ type }: { type: CollectionType }) {
 
 function CollectionHero({ type, descriptor }: { type: CollectionType; descriptor: string }) {
   const service = type === 'service'
-  return <section className={`page-hero collection-hero collection-hero-${type}`}><CollectionHeroArtwork type={type} /><div className="container collection-hero-content"><p className="eyebrow">{service ? 'Event services' : 'The hire collection'}</p><h1>{service ? <>The <em>pretty</em> part<br />made easy.</> : <>Beautiful pieces,<br /><em>ready to celebrate.</em></>}</h1><p>Browse our {descriptor}, then send a request for your date.</p></div></section>
+  const [artwork, setArtwork] = useState<Pick<HomeContent, 'bookingsHeroUrl'>>({ bookingsHeroUrl: '' })
+  useEffect(() => { api.homeContent().then(setArtwork).catch(() => undefined) }, [])
+  const sharedHero = artwork.bookingsHeroUrl
+  const style = sharedHero ? { '--page-artwork': `url("${sharedHero}")` } as CSSProperties & Record<'--page-artwork', string> : undefined
+  return <section className={`page-hero collection-hero collection-hero-${type}${sharedHero ? ' has-shared-hero-artwork' : ''}`} style={style}>{sharedHero ? null : <CollectionHeroArtwork type={type} />}<div className="container collection-hero-content"><p className="eyebrow">{service ? 'Event services' : 'The hire collection'}</p><h1>{service ? <>The <em>pretty</em> part<br />made easy.</> : <>Beautiful pieces,<br /><em>ready to celebrate.</em></>}</h1><p>Browse our {descriptor}, then send a request for your date.</p></div></section>
 }
 
 function CollectionPage({ type }: { type: CollectionType }) {
@@ -300,7 +313,7 @@ function ServiceRequestForm({ offering }: { offering: Offering }) {
   const selectedPromotion = applicablePromotions.find((promotion) => promotion._id === promotionId)
   const unitPrice = offering.price
   const subtotal = unitPrice * (offering.type === 'hire' ? hireDays : 1)
-  const discountAmount = Math.round(subtotal * (selectedPromotion?.discountPercent || 0) / 100)
+  const discountAmount = Math.round(subtotal * (selectedPromotion?.discountPercent || 0)) / 100
   const totalPrice = Math.max(0, subtotal - discountAmount)
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setSubmitting(true); setError(null); setSuccess(null)

@@ -146,7 +146,7 @@ export async function sendActivationEmail(input: ActivationEmailInput) {
   const resend = configuredResend()
   const eventDate = input.eventDate ? new Intl.DateTimeFormat('en-AU', { dateStyle: 'long' }).format(input.eventDate) : 'To be confirmed'
   const bookingType = input.type === 'hire' ? `Hire booking${input.hireDays > 1 ? ` · ${input.hireDays} days` : ''}` : 'Event service booking'
-  const totalPrice = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', maximumFractionDigits: 0 }).format(input.totalPrice)
+  const totalPrice = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 }).format(input.totalPrice)
   const bookingUrl = env.websiteUrl ? `${env.websiteUrl}/services-hire` : ''
   if (env.resendBookingTemplateId) return sendTemplateEmail(resend, {
     templateId: env.resendBookingTemplateId,
@@ -174,7 +174,7 @@ export async function sendCompletionEmail(input: CompletionEmailInput) {
   const resend = configuredResend()
   const eventDate = input.eventDate ? new Intl.DateTimeFormat('en-AU', { dateStyle: 'long' }).format(input.eventDate) : 'To be confirmed'
   const bookingType = input.type === 'hire' ? `Hire booking${input.hireDays > 1 ? ` · ${input.hireDays} days` : ''}` : 'Event service booking'
-  const totalPrice = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', maximumFractionDigits: 0 }).format(input.totalPrice)
+  const totalPrice = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 }).format(input.totalPrice)
   const bookingUrl = env.websiteUrl ? `${env.websiteUrl}/services-hire` : ''
 
   if (env.resendCompletionTemplateId) {

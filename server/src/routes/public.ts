@@ -20,7 +20,8 @@ function trackingId() {
   return `CC-${date}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
 }
 
-function roundLkr(value: number) { return Math.round(value) }
+function roundAud(value: number) { return Math.round(value * 100) / 100 }
+function formatAud(value: number) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 }).format(value) }
 const changeCutoffMs = 10 * 24 * 60 * 60 * 1000
 
 function hasTenDayLeadTime(value: Date) {
@@ -80,10 +81,10 @@ router.post('/service-requests', async (req, res, next) => {
     const promotion = promotionId ? await Promotion.findOne({ _id: promotionId, enabled: true }) : null
     if (promotionId && !promotion) return res.status(400).json({ message: 'That promotion is no longer available.' })
     if (promotion && promotion.appliesTo !== 'all' && promotion.appliesTo !== offering.type) return res.status(400).json({ message: 'That promotion does not apply to this item.' })
-    const unitPrice = roundLkr(offering.price)
-    const subtotal = roundLkr(unitPrice * hireDays)
+    const unitPrice = roundAud(offering.price)
+    const subtotal = roundAud(unitPrice * hireDays)
     const discountPercent = promotion?.discountPercent || 0
-    const discountAmount = roundLkr(subtotal * discountPercent / 100)
+    const discountAmount = roundAud(subtotal * discountPercent / 100)
     const totalPrice = Math.max(0, subtotal - discountAmount)
     const marketingConsent = ['true', '1', 'on', 'yes'].includes(String(req.body.marketingConsent || '').toLowerCase())
     let request
@@ -129,7 +130,7 @@ router.post('/service-requests', async (req, res, next) => {
         { label: 'Hire duration', value: request.type === 'hire' ? `${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : undefined },
         { label: 'Phone', value: request.phone },
         { label: 'Event type', value: request.eventType },
-        { label: 'Total', value: `LKR ${request.totalPrice.toLocaleString('en-LK')}` },
+        { label: 'Total', value: formatAud(request.totalPrice) },
         { label: 'Notes', value: request.notes },
       ],
     }).catch((error) => console.error('Could not send new booking email.', error))
@@ -206,8 +207,8 @@ router.patch('/service-requests/customer', async (req, res, next) => {
       if (!Number.isInteger(hireDays) || hireDays < 1 || hireDays > 30) return res.status(400).json({ message: 'Choose a hire period between 1 and 30 days.' })
       if (request.hireDays !== hireDays) {
         request.hireDays = hireDays
-        request.subtotal = roundLkr(request.unitPrice * hireDays)
-        request.discountAmount = roundLkr(request.subtotal * request.discountPercent / 100)
+        request.subtotal = roundAud(request.unitPrice * hireDays)
+        request.discountAmount = roundAud(request.subtotal * request.discountPercent / 100)
         request.totalPrice = Math.max(0, request.subtotal - request.discountAmount)
         changed.push('hire duration and price')
       }
@@ -226,7 +227,7 @@ router.patch('/service-requests/customer', async (req, res, next) => {
         { label: 'Updated fields', value: changed.length ? changed.join(', ') : 'No fields were changed' },
         { label: 'Event / hire date', value: request.eventDate?.toISOString().slice(0, 10) },
         { label: 'Hire duration', value: request.type === 'hire' ? `${request.hireDays} day${request.hireDays === 1 ? '' : 's'}` : undefined },
-        { label: 'Total', value: `LKR ${request.totalPrice.toLocaleString('en-LK')}` },
+        { label: 'Total', value: formatAud(request.totalPrice) },
         { label: 'Notes', value: request.notes },
       ],
     }).catch((error) => console.error('Could not send order update email.', error))
