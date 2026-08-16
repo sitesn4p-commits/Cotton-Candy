@@ -82,7 +82,7 @@ export function SiteLayout() {
 }
 
 function NavigationLinks({ closeMenu }: { closeMenu: () => void }) {
-  return <><NavLink to="/" end onClick={closeMenu}>Home</NavLink><NavLink to="/about" onClick={closeMenu}>About</NavLink><NavDropdown label="Bookings" to="/services-hire" closeMenu={closeMenu} items={[['/services', 'Services'], ['/hire', 'Hire collection']]} /><NavLink to="/promotions" onClick={closeMenu}>Promotions</NavLink><NavDropdown label="Gallery" to="/gallery/images" closeMenu={closeMenu} items={[['/gallery/images', 'Images'], ['/gallery/videos', 'Videos']]} /><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></>
+  return <><NavLink to="/" end onClick={closeMenu}>Home</NavLink><NavLink to="/about" onClick={closeMenu}>About</NavLink><NavDropdown label="Bookings" to="/services-hire" closeMenu={closeMenu} items={[['/services', 'Services'], ['/hire', 'Hire collection']]} /><NavLink to="/promotions" onClick={closeMenu}>Promotions</NavLink><NavDropdown label="Gallery" closeMenu={closeMenu} items={[['/gallery/images', 'Images'], ['/gallery/videos', 'Videos']]} /><NavLink to="/contact" onClick={closeMenu}>Contact</NavLink></>
 }
 
 function SiteMotionEffects() {
@@ -170,14 +170,14 @@ function SiteMotionEffects() {
   return null
 }
 
-function NavDropdown({ label, to, closeMenu, items }: { label: string; to: string; closeMenu: () => void; items: Array<[string, string]> }) {
+function NavDropdown({ label, to, closeMenu, items }: { label: string; to?: string; closeMenu: () => void; items: Array<[string, string]> }) {
   const [isOpen, setIsOpen] = useState(false)
   const { pathname } = useLocation()
   const closeDropdown = () => { setIsOpen(false); closeMenu() }
 
   useEffect(() => { setIsOpen(false) }, [pathname])
 
-  return <div className={`nav-dropdown${isOpen ? ' is-open' : ''}`} onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)} onFocus={() => setIsOpen(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsOpen(false) }}><NavLink to={to} onClick={closeDropdown}>{label} <span className="dropdown-mark">⌄</span></NavLink><div className="nav-submenu">{items.map(([path, name]) => <NavLink key={path} to={path} onClick={closeDropdown}>{name}<span>→</span></NavLink>)}</div></div>
+  return <div className={`nav-dropdown${isOpen ? ' is-open' : ''}`} onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)} onFocus={() => setIsOpen(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsOpen(false) }}>{to ? <NavLink to={to} onClick={closeDropdown}>{label} <span className="dropdown-mark">⌄</span></NavLink> : <button className="nav-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded={isOpen}>{label} <span className="dropdown-mark">⌄</span></button>}<div className="nav-submenu">{items.map(([path, name]) => <NavLink key={path} to={path} onClick={closeDropdown}>{name}<span>→</span></NavLink>)}</div></div>
 }
 
 function PromotionOverlay() {
