@@ -1141,11 +1141,12 @@ body.hero-ready .loader-progress-card { opacity: 0; visibility: hidden; }
 .collection-hero:before { background: none; }
 .collection-hero-service { background: radial-gradient(circle at 76% 53%, rgba(255,255,255,.8) 0 7%, transparent 30%), radial-gradient(circle at 94% 14%, rgba(236,184,190,.56) 0 4%, transparent 24%), linear-gradient(121deg, #f3e2dc 0%, #edddd2 47%, #d9e0d3 100%); }
 .collection-hero-hire { background: radial-gradient(circle at 74% 51%, rgba(255,254,245,.84) 0 8%, transparent 31%), radial-gradient(circle at 92% 18%, rgba(217,180,145,.34) 0 5%, transparent 22%), linear-gradient(119deg, #eee4da 0%, #e8d9cf 48%, #d8dfcf 100%); }
-.collection-hero.has-shared-hero-artwork { background-image: linear-gradient(90deg, rgba(42, 36, 32, .76), rgba(42, 36, 32, .46) 53%, rgba(42, 36, 32, .16)), var(--page-artwork); background-position: center; background-size: cover; }
+.collection-hero.has-shared-hero-artwork { background-image: linear-gradient(90deg, rgba(35, 29, 26, .84), rgba(35, 29, 26, .52) 55%, rgba(35, 29, 26, .18)), var(--page-artwork); background-position: center; background-size: cover; }
 .collection-hero.has-shared-hero-artwork:before { background: linear-gradient(90deg, rgba(42, 36, 32, .24), transparent); }
 .collection-hero.has-shared-hero-artwork .collection-hero-content, .collection-hero.has-shared-hero-artwork .collection-hero-content p { color: #fffaf5 !important; text-shadow: 0 2px 18px rgba(24, 19, 17, .42); }
 .collection-hero.has-shared-hero-artwork .collection-hero-content .eyebrow { color: #ffd6db !important; }
-.collection-hero.has-shared-hero-artwork .collection-hero-content h1 em { color: #ffc0c8; }
+.collection-hero.has-shared-hero-artwork .collection-hero-content h1 { color: #fffaf5 !important; text-shadow: 0 3px 24px rgba(15, 11, 10, .58); }
+.collection-hero.has-shared-hero-artwork .collection-hero-content h1 em { color: #ffc0c8 !important; }
 .collection-hero:after { border: 1px solid rgba(99,77,67,.14); border-radius: 50%; content: ''; height: 590px; pointer-events: none; position: absolute; right: -260px; top: -334px; width: 590px; z-index: 0; }
 .collection-hero-content { color: var(--ink) !important; max-width: 610px; position: relative; z-index: 2; }
 .collection-hero .eyebrow { color: var(--deep-rose); }
