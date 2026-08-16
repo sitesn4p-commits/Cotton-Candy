@@ -15,6 +15,7 @@ type BalloonStyle = CSSProperties & Record<'--balloon-left' | '--balloon-top' | 
 type HeroFlower = { id: number; x: number; y: number; icon: string; color: string; size: number; rotation: number }
 const lkrFormatter = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 })
 const hireDurationOptions = [1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30]
+const defaultGalleryHeroUrl = 'https://res.cloudinary.com/lf0fwftm/image/upload/v1786849844/cotton-candy/gallery/images/c69l10h58uznlkziqunv.jpg'
 function formatLkr(amount: number | undefined) { return lkrFormatter.format(typeof amount === 'number' && Number.isFinite(amount) ? amount : 0) }
 
 function HeroBalloons() {
@@ -137,11 +138,12 @@ function PageHero({ eyebrow, title, children, className, style }: { eyebrow: str
 }
 
 function GalleryHero({ kind }: { kind: 'image' | 'video' }) {
-  const imageGallery = kind === 'image'
-  const [artwork, setArtwork] = useState<Pick<HomeContent, 'galleryHeroUrl'>>({ galleryHeroUrl: '' })
-  useEffect(() => { api.homeContent().then(setArtwork).catch(() => undefined) }, [])
-  if (artwork.galleryHeroUrl) return <GalleryHeroWithArtwork kind={kind} imageUrl={artwork.galleryHeroUrl} />
-  return <section className="page-hero page-hero-gallery"><span className="gallery-hero-glow gallery-hero-glow-one" aria-hidden="true" /><span className="gallery-hero-glow gallery-hero-glow-two" aria-hidden="true" /><div className="container"><div className="gallery-hero-copy"><p className="eyebrow">Our little world of pretty</p><h1>{imageGallery ? <>Moments made to<br /><em>be remembered.</em></> : <>See the <em>magic</em><br />come to life.</>}</h1><p>{imageGallery ? 'A living scrapbook of pastel parties, thoughtful details and celebrations made with love.' : 'A little motion, a lot of joy and every celebration coming to life.'}</p><div className="gallery-hero-tags"><span>Weddings</span><span>Birthdays</span><span>Baby showers</span></div></div><div className="gallery-hero-art" aria-hidden="true"><span className="gallery-confetti gallery-confetti-one" /><span className="gallery-confetti gallery-confetti-two" /><span className="gallery-confetti gallery-confetti-three" /><div className="gallery-memory-card gallery-memory-card-main"><span className="gallery-memory-stamp">CC</span><span className="gallery-memory-balloon gallery-memory-balloon-one" /><span className="gallery-memory-balloon gallery-memory-balloon-two" /><span className="gallery-memory-balloon gallery-memory-balloon-three" /><span className="gallery-memory-bow" /><span className="gallery-memory-caption">made to remember</span></div><div className="gallery-memory-card gallery-memory-card-side"><span>✦</span><i /></div><div className="gallery-memory-card gallery-memory-card-mini"><span>♥</span><i /></div><div className="gallery-memory-ribbon">celebrate<br /><em>every detail</em></div></div></div></section>
+  const [imageUrl, setImageUrl] = useState(defaultGalleryHeroUrl)
+  useEffect(() => {
+    Promise.all([api.homeContent().catch(() => null), api.media('image').catch(() => [])])
+      .then(([content, images]) => setImageUrl(content?.galleryHeroUrl || images[0]?.url || defaultGalleryHeroUrl))
+  }, [])
+  return <GalleryHeroWithArtwork kind={kind} imageUrl={imageUrl} />
 }
 
 function GalleryHeroWithArtwork({ kind, imageUrl }: { kind: 'image' | 'video'; imageUrl: string }) {
@@ -398,11 +400,15 @@ export function GalleryPage({ kind }: { kind: 'image' | 'video' }) {
   useEffect(() => { setSelectedImage(null) }, [kind])
   useEffect(() => {
     if (!selectedImage) return
+    document.body.classList.add('gallery-lightbox-open')
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelectedImage(null) }
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.classList.remove('gallery-lightbox-open')
+      window.removeEventListener('keydown', closeOnEscape)
+    }
   }, [selectedImage])
-  return <><GalleryHero kind={kind} /><section className="gallery-page container"><div className="gallery-switch"><Link className={kind === 'image' ? 'active' : ''} to="/gallery/images">Images</Link><Link className={kind === 'video' ? 'active' : ''} to="/gallery/videos">Videos</Link></div>{media.length ? <div className={`masonry-gallery ${kind === 'video' ? 'video-gallery' : ''}`}>{media.map((asset, index) => <figure className={`gallery-item${kind === 'image' && index % 3 === 0 ? ' tall' : ''}`} key={asset._id}>{kind === 'video' ? <GalleryVideo asset={asset} /> : <button className="gallery-image-button" type="button" onClick={() => setSelectedImage(asset)} aria-label={`View ${asset.title} full screen`}><img src={asset.url} alt={asset.title} /></button>}<figcaption>{asset.title}</figcaption></figure>)}</div> : <p className="empty-state">Our celebration videos are coming soon.</p>}</section>{selectedImage ? <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedImage.title} full screen image`} onClick={() => setSelectedImage(null)}><div className="gallery-lightbox-content" onClick={(event) => event.stopPropagation()}><button className="gallery-lightbox-close" type="button" aria-label="Close full screen image" onClick={() => setSelectedImage(null)}>×</button><img src={selectedImage.url} alt={selectedImage.title} /><p>{selectedImage.title}</p></div></div> : null}</>
+  return <><GalleryHero kind={kind} /><section className="gallery-page container"><div className="gallery-switch"><Link className={kind === 'image' ? 'active' : ''} to="/gallery/images">Images</Link><Link className={kind === 'video' ? 'active' : ''} to="/gallery/videos">Videos</Link></div>{media.length ? <div className={`masonry-gallery ${kind === 'video' ? 'video-gallery' : ''}`}>{media.map((asset, index) => <figure className={`gallery-item${kind === 'image' && index % 3 === 0 ? ' tall' : ''}`} key={asset._id}>{kind === 'video' ? <GalleryVideo asset={asset} /> : <button className="gallery-image-button" type="button" onClick={() => setSelectedImage(asset)} aria-label={`View ${asset.title} full screen`}><img src={asset.url} alt={asset.title} loading="lazy" decoding="async" /></button>}<figcaption>{asset.title}</figcaption></figure>)}</div> : <p className="empty-state">Our celebration videos are coming soon.</p>}</section>{selectedImage ? <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedImage.title} full screen image`} onClick={() => setSelectedImage(null)}><div className="gallery-lightbox-content" onClick={(event) => event.stopPropagation()}><button className="gallery-lightbox-close" type="button" aria-label="Close full screen image" onClick={() => setSelectedImage(null)}>×</button><img src={selectedImage.url} alt={selectedImage.title} /><p>{selectedImage.title}</p></div></div> : null}</>
 }
 
 export function GalleryImagesPage() {
@@ -428,11 +434,15 @@ export function GalleryImagesPage() {
   useEffect(() => { if (category !== 'all' && !categories.includes(category)) setCategory('all') }, [category, categories])
   useEffect(() => {
     if (!selectedImage) return
+    document.body.classList.add('gallery-lightbox-open')
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelectedImage(null) }
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.classList.remove('gallery-lightbox-open')
+      window.removeEventListener('keydown', closeOnEscape)
+    }
   }, [selectedImage])
-  return <><GalleryHero kind="image" /><section className="gallery-page container"><div className="gallery-switch"><Link className="active" to="/gallery/images">Images</Link><Link to="/gallery/videos">Videos</Link></div>{media.length ? <><div className="gallery-category-filter"><p className="eyebrow">Browse by celebration</p><FilterButtons current={category} onChange={setCategory} options={[['all', 'All images'], ...categories.map((item) => [item, item] as [string, string])]} /></div>{galleryGroups.length ? <div className="gallery-title-groups">{galleryGroups.map((group) => <section className="gallery-title-group" key={group.key}><header className="gallery-title-divider"><span /><div><p>{group.category}</p><h2>{group.title}</h2></div><span /></header><div className="masonry-gallery gallery-title-masonry">{group.items.map((asset, index) => <figure className={`gallery-item${index % 3 === 0 ? ' tall' : ''}`} key={asset._id}><button className="gallery-image-button" type="button" onClick={() => setSelectedImage(asset)} aria-label={`View ${asset.title} full screen`}><img src={asset.url} alt={asset.title} /></button><figcaption><small>{asset.category}</small>{asset.title}</figcaption></figure>)}</div></section>)}</div> : <p className="empty-state">There are no images in this category yet.</p>}</> : <p className="empty-state">Our celebration images are coming soon.</p>}</section>{selectedImage ? <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedImage.title} full screen image`} onClick={() => setSelectedImage(null)}><div className="gallery-lightbox-content" onClick={(event) => event.stopPropagation()}><button className="gallery-lightbox-close" type="button" aria-label="Close full screen image" onClick={() => setSelectedImage(null)}>×</button><img src={selectedImage.url} alt={selectedImage.title} /><p>{selectedImage.category} · {selectedImage.title}</p></div></div> : null}</>
+  return <><GalleryHero kind="image" /><section className="gallery-page container"><div className="gallery-switch"><Link className="active" to="/gallery/images">Images</Link><Link to="/gallery/videos">Videos</Link></div>{media.length ? <><div className="gallery-category-filter"><p className="eyebrow">Browse by celebration</p><FilterButtons current={category} onChange={setCategory} options={[['all', 'All images'], ...categories.map((item) => [item, item] as [string, string])]} /></div>{galleryGroups.length ? <div className="gallery-title-groups">{galleryGroups.map((group) => <section className="gallery-title-group" key={group.key}><header className="gallery-title-divider"><span /><div><p>{group.category}</p><h2>{group.title}</h2></div><span /></header><div className="masonry-gallery gallery-title-masonry">{group.items.map((asset, index) => <figure className={`gallery-item${index % 3 === 0 ? ' tall' : ''}`} key={asset._id}><button className="gallery-image-button" type="button" onClick={() => setSelectedImage(asset)} aria-label={`View ${asset.title} full screen`}><img src={asset.url} alt={asset.title} loading="lazy" decoding="async" /></button><figcaption><small>{asset.category}</small>{asset.title}</figcaption></figure>)}</div></section>)}</div> : <p className="empty-state">There are no images in this category yet.</p>}</> : <p className="empty-state">Our celebration images are coming soon.</p>}</section>{selectedImage ? <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedImage.title} full screen image`} onClick={() => setSelectedImage(null)}><div className="gallery-lightbox-content" onClick={(event) => event.stopPropagation()}><button className="gallery-lightbox-close" type="button" aria-label="Close full screen image" onClick={() => setSelectedImage(null)}>×</button><img src={selectedImage.url} alt={selectedImage.title} /><p>{selectedImage.category} · {selectedImage.title}</p></div></div> : null}</>
 }
 
 export function ContactPage() {
