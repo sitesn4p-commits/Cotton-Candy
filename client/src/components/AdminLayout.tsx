@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../lib/useAuth'
+import { AdminBrowserNotifications } from './AdminBrowserNotifications'
 
 const adminLinks = [
   ['', 'Overview', '⌂'], ['services', 'Services', '✦'], ['hire', 'Hire collection', '◇'], ['categories', 'Categories', '▦'],
@@ -40,6 +41,6 @@ export function AdminLayout() {
       </nav>
       <div className="admin-sidebar-bottom"><a href={websiteUrl} target="_blank" rel="noreferrer">↗ View website</a><button type="button" onClick={handleSignOut}>Log out</button></div>
     </aside>
-    <main className="admin-main admin-main-new"><header className="admin-topbar"><button type="button" className="admin-menu-toggle" aria-controls="admin-navigation" aria-expanded={open} aria-label={open ? 'Close admin menu' : 'Open admin menu'} onClick={() => setOpen((value) => !value)}>☰</button><div><p>Private management space</p><strong>Cotton Candy Event Deco</strong></div><a href={websiteUrl} target="_blank" rel="noreferrer">View website ↗</a></header><Outlet /></main>
+    <main className="admin-main admin-main-new"><header className="admin-topbar"><button type="button" className="admin-menu-toggle" aria-controls="admin-navigation" aria-expanded={open} aria-label={open ? 'Close admin menu' : 'Open admin menu'} onClick={() => setOpen((value) => !value)}>☰</button><div><p>Private management space</p><strong>Cotton Candy Event Deco</strong></div><div className="admin-topbar-actions"><AdminBrowserNotifications /><a href={websiteUrl} target="_blank" rel="noreferrer">View website ↗</a></div></header><Outlet /></main>
   </div>
 }

@@ -61,6 +61,7 @@ export type OrderNotification = { _id: string; request?: Pick<ServiceRequest, '_
 export type OrderWorkflowResult = { message: string; request: ServiceRequest; emailSent: boolean }
 
 export const api = {
+  webPushPublicKey: () => request<{ publicKey: string | null }>('/push/vapid-public-key'),
   categories: (type?: CollectionType) => cachedPublicRequest<Category[]>(`/categories${type ? `?type=${type}` : ''}`),
   offerings: (type?: CollectionType, category?: string) => cachedPublicRequest<Offering[]>(`/offerings?${new URLSearchParams({ ...(type ? { type } : {}), ...(category ? { category } : {}) })}`),
   offering: (offeringId: string) => cachedPublicRequest<Offering>(`/offerings/${offeringId}`),
@@ -75,6 +76,8 @@ export const api = {
   sendEnquiry: (body: Record<string, unknown>) => request<{ message: string }>('/contact', { method: 'POST', body }),
   signInAsAdmin: (email: string, password: string) => request<AuthResponse>('/auth/admin-login', { method: 'POST', body: { email, password } }),
   dashboard: (token: string) => request<AdminDashboard>('/admin/dashboard', { token }),
+  registerWebPushSubscription: (token: string, subscription: PushSubscriptionJSON) => request<{ message: string }>('/admin/web-push-subscriptions', { method: 'POST', body: subscription as Record<string, unknown>, token }),
+  unregisterWebPushSubscription: (token: string, endpoint: string) => request<void>('/admin/web-push-subscriptions', { method: 'DELETE', body: { endpoint }, token }),
   adminNewsletterSubscribers: (token: string) => request<NewsletterSubscriber[]>('/admin/newsletter-subscribers', { token }),
   deleteNewsletterSubscriber: (token: string, subscriberId: string) => request<void>(`/admin/newsletter-subscribers/${subscriberId}`, { method: 'DELETE', token }),
   adminCategories: (token: string, type?: CollectionType) => request<Category[]>(`/admin/categories${type ? `?type=${type}` : ''}`, { token }),

@@ -2,51 +2,51 @@
 
 The private admin workspace is available in three ways:
 
-1. **Browser workspace:** Sign in to the dedicated admin Render URL. Use **Enable notifications** if you want browser push notifications on Chrome or Edge.
-2. **Android APK:** Capacitor wraps the admin React build in the Android project at `client/android`.
-3. **Windows installer:** Tauri wraps the same admin React build in `client/src-tauri` and creates an NSIS installer.
+1. **Browser workspace:** Sign in to the dedicated admin Render URL. Use **Enable alerts** to receive browser push notifications.
+2. **Installable web app (PWA):** Use the dedicated admin URL on Android, iPhone, iPad, or desktop. iPhone users can install it from Safari using the steps below.
+3. **Android APK:** Capacitor wraps the admin React build in the Android project at `client/android`.
+4. **Windows installer:** Tauri wraps the same admin React build in `client/src-tauri` and creates an NSIS installer.
 
-## Firebase push notifications
+## Install the admin PWA on iPhone or iPad
 
-Firebase Cloud Messaging (FCM) delivers notifications for new booking requests, contact messages, order changes/cancellations, and newsletter signups. The API stores a device token only after the administrator grants notification permission.
+Deploy the dedicated admin static site using the admin build (`npm run build:admin --workspace client`). On the iPhone or iPad:
 
-### 1. Create the Firebase project
+1. Open the dedicated admin URL in Safari and sign in.
+2. Tap **Share**, then **Add to Home Screen**.
+3. Turn on **Open as Web App**, then tap **Add**.
+4. Open **Cotton Candy** from the Home Screen and sign in if prompted.
 
-1. Open the [Firebase console](https://console.firebase.google.com/) and create a project named `Cotton Candy Admin`.
-2. Add an **Android** app using this exact package name: `au.com.cottoncandyeventdeco.admin`.
-3. Download `google-services.json` and put it at `client/android/app/google-services.json`. This file is ignored by Git.
-4. Add a **Web** app. In Firebase Cloud Messaging, create a Web Push certificate and copy the public VAPID key.
-5. In Firebase project settings, create a service-account private key JSON file. Keep it private.
+The Home Screen icon opens the same secured admin website in a standalone window. This is a web app; it does not require an iOS IPA build. The public website build does not include the admin PWA manifest or service worker.
 
-### 2. Configure Render
+## Admin PWA order notifications
 
-On the **API** Render service, set:
+The admin PWA uses standard Web Push with VAPID keys. Firebase and a native app are not required. Notifications are sent for new booking or hire requests and customer order updates or cancellations.
 
-```text
-FIREBASE_SERVICE_ACCOUNT_JSON={the full service-account JSON on one line}
-ADMIN_CLIENT_URL={the deployed admin Render URL without a trailing slash}
+### 1. Generate VAPID keys
+
+From the repository root, run:
+
+```powershell
+npm exec --workspace server -- web-push generate-vapid-keys
 ```
 
-On the **admin static site** Render service, add the values from the Firebase web-app configuration:
+Keep the private key secret. Configure these variables on the API service in Render:
 
 ```text
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_FIREBASE_VAPID_KEY=
+WEB_PUSH_PUBLIC_KEY={generated public key}
+WEB_PUSH_PRIVATE_KEY={generated private key}
+WEB_PUSH_SUBJECT=mailto:your-admin-email@example.com
 ```
 
-Redeploy the API and admin static site after saving these values. The Firebase web config and VAPID key are public client configuration; the service-account JSON must remain private.
+The admin frontend fetches only the public key from the API. Never put the private key in the client app or commit it to Git.
+
+### 2. Deploy and subscribe the admin PWA
+
+Deploy the updated API and the dedicated admin static site, built with `npm run build:admin --workspace client`. Open the admin site over HTTPS, sign in, and select **Enable alerts**. On iPhone or iPad, first add the admin site to the Home Screen and open it from its Home Screen icon. Allow notifications when prompted.
 
 ### 3. Verify notifications
 
-1. Open the admin app on the phone or desktop and sign in.
-2. Allow notification permission when prompted.
-3. Create a test booking or submit a contact message from the public website.
-4. A system notification should open the relevant admin page when tapped.
+Submit a test booking or hire request from the public website. Then test a customer order update or cancellation. The PWA should show a system notification; tapping it opens the relevant admin list. Each browser or device must enable alerts separately.
 
 ## Build the Android APK
 

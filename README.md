@@ -25,4 +25,4 @@ The repository also contains native wrappers:
 - Android Capacitor project: `client/android`
 - Windows Tauri project: `client/src-tauri`
 
-See `docs/admin-apps.md` for Firebase push notification setup and the exact APK/Windows installer commands.
+See `docs/admin-apps.md` for admin PWA installation and Web Push setup, plus the existing Android wrapper and Windows installer commands.

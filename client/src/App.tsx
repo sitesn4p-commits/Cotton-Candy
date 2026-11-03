@@ -3,6 +3,7 @@ import { AdminActiveOrdersPage, AdminCancelledOrdersPage, AdminCategoriesPage, A
 import { AdminLoginPage } from './pages/AdminLoginPage'
 import { ContactPage, GalleryImagesPage, GalleryPage, HireCollectionPage, HomePage, OfferingDetailsPage, PromotionsPage, ServicesCollectionPage, ServicesHirePage, UpdatedAboutPage } from './pages/PublicPages'
 import { AdminLayout } from './components/AdminLayout'
+import { AdminPwaInstallPrompt } from './components/AdminPwaInstallPrompt'
 import { ProtectedAdmin, SiteLayout } from './components/SiteLayout'
 
 export default function App() {
@@ -33,27 +34,30 @@ export default function App() {
   )
 
   return (
-    <Routes>
-      {!isAdminBuild && (
-        <Route element={<SiteLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="about" element={<UpdatedAboutPage />} />
-          <Route path="services-hire" element={<ServicesHirePage />} />
-          <Route path="services" element={<ServicesCollectionPage />} />
-          <Route path="services/:offeringId" element={<OfferingDetailsPage type="service" />} />
-          <Route path="hire" element={<HireCollectionPage />} />
-          <Route path="hire/:offeringId" element={<OfferingDetailsPage type="hire" />} />
-          <Route path="promotions" element={<PromotionsPage />} />
-          <Route path="gallery" element={<Navigate to="/gallery/images" replace />} />
-          <Route path="gallery/images" element={<GalleryImagesPage />} />
-          <Route path="gallery/videos" element={<GalleryPage kind="video" />} />
-          <Route path="contact" element={<ContactPage />} />
-          <Route path="store" element={<Navigate to="/hire" replace />} />
-          <Route path="store/:offeringId" element={<Navigate to="/hire" replace />} />
-        </Route>
-      )}
-      {adminRoutes}
-      <Route path="*" element={<Navigate to={isAdminBuild ? '/manage-cotton-candy' : '/'} replace />} />
-    </Routes>
+    <>
+      {isAdminBuild ? <AdminPwaInstallPrompt /> : null}
+      <Routes>
+        {!isAdminBuild && (
+          <Route element={<SiteLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="about" element={<UpdatedAboutPage />} />
+            <Route path="services-hire" element={<ServicesHirePage />} />
+            <Route path="services" element={<ServicesCollectionPage />} />
+            <Route path="services/:offeringId" element={<OfferingDetailsPage type="service" />} />
+            <Route path="hire" element={<HireCollectionPage />} />
+            <Route path="hire/:offeringId" element={<OfferingDetailsPage type="hire" />} />
+            <Route path="promotions" element={<PromotionsPage />} />
+            <Route path="gallery" element={<Navigate to="/gallery/images" replace />} />
+            <Route path="gallery/images" element={<GalleryImagesPage />} />
+            <Route path="gallery/videos" element={<GalleryPage kind="video" />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="store" element={<Navigate to="/hire" replace />} />
+            <Route path="store/:offeringId" element={<Navigate to="/hire" replace />} />
+          </Route>
+        )}
+        {adminRoutes}
+        <Route path="*" element={<Navigate to={isAdminBuild ? '/manage-cotton-candy' : '/'} replace />} />
+      </Routes>
+    </>
   )
 }

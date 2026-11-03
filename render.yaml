@@ -27,6 +27,12 @@ services:
         sync: false
       - key: ADMIN_CLIENT_URL
         sync: false
+      - key: WEB_PUSH_PUBLIC_KEY
+        sync: false
+      - key: WEB_PUSH_PRIVATE_KEY
+        sync: false
+      - key: WEB_PUSH_SUBJECT
+        sync: false
 
   - type: web
     runtime: static
@@ -47,7 +53,7 @@ services:
   - type: web
     runtime: static
     name: cotton-candy-event-deco-admin
-    buildCommand: npm ci && npm run build --workspace client
+    buildCommand: npm ci && npm run build:admin --workspace client
     staticPublishPath: client/dist
     autoDeployTrigger: commit
     routes:

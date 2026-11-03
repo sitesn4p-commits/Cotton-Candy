@@ -27,4 +27,7 @@ export const env = {
   resendPromotionTemplateId: process.env.RESEND_PROMOTION_TEMPLATE_ID || '',
   adminNotificationEmail: (process.env.ADMIN_NOTIFICATION_EMAIL || 'cottoncandydecorations@gmail.com').trim().toLowerCase(),
   adminAppUrl: (process.env.ADMIN_CLIENT_URL || '').replace(/\/$/, ''),
+  webPushPublicKey: process.env.WEB_PUSH_PUBLIC_KEY || '',
+  webPushPrivateKey: process.env.WEB_PUSH_PRIVATE_KEY || '',
+  webPushSubject: process.env.WEB_PUSH_SUBJECT || 'mailto:cottoncandydecorations@gmail.com',
 }

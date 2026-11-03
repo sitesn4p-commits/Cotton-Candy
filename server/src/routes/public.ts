@@ -5,6 +5,7 @@ import { MediaAsset } from '../models/MediaAsset.js'
 import { NewsletterSubscriber } from '../models/NewsletterSubscriber.js'
 import { Offering } from '../models/Offering.js'
 import { OrderNotification } from '../models/OrderNotification.js'
+import { getWebPushPublicKey, sendAdminWebPushNotification } from '../services/webPushNotifications.js'
 import { Promotion } from '../models/Promotion.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
@@ -23,6 +24,8 @@ function trackingId() {
 function roundAud(value: number) { return Math.round(value * 100) / 100 }
 function formatAud(value: number) { return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 }).format(value) }
 const changeCutoffMs = 10 * 24 * 60 * 60 * 1000
+
+router.get('/push/vapid-public-key', (_req, res) => res.json({ publicKey: getWebPushPublicKey() }))
 
 function hasTenDayLeadTime(value: Date) {
   return value.getTime() - Date.now() >= changeCutoffMs
@@ -118,6 +121,11 @@ router.post('/service-requests', async (req, res, next) => {
       }
     }
     if (!request) return res.status(503).json({ message: 'Please try your request again.' })
+    void sendAdminWebPushNotification({
+      title: `New ${request.type === 'hire' ? 'hire' : 'booking'} request`,
+      body: `${request.customerName} · ${request.offeringName}`,
+      url: '/manage-cotton-candy/requests',
+    })
     void sendAdminActivityEmail({
       title: `New ${request.type === 'hire' ? 'hire' : 'booking'} request`,
       subject: `New Cotton Candy ${request.type === 'hire' ? 'hire' : 'booking'} request`,
@@ -165,6 +173,11 @@ router.patch('/service-requests/customer', async (req, res, next) => {
       request.status = 'cancel'
       await request.save()
       await OrderNotification.create({ request: request._id, type: 'cancelled', message: 'Customer cancelled this order online.', details: `${request.customerName} cancelled ${request.offeringName}.` })
+      void sendAdminWebPushNotification({
+        title: 'Order cancelled',
+        body: `${request.customerName} cancelled ${request.offeringName}.`,
+        url: '/manage-cotton-candy/order-notifications',
+      })
       void sendAdminActivityEmail({
         title: 'Customer cancelled an order',
         subject: 'Cotton Candy order cancelled by customer',
@@ -216,6 +229,11 @@ router.patch('/service-requests/customer', async (req, res, next) => {
 
     await request.save()
     await OrderNotification.create({ request: request._id, type: 'updated', message: 'Customer updated this order online.', details: changed.length ? `Updated: ${changed.join(', ')}.` : 'Customer saved their order without changing any details.' })
+    void sendAdminWebPushNotification({
+      title: 'Order updated',
+      body: `${request.customerName} updated ${request.offeringName}.`,
+      url: '/manage-cotton-candy/order-notifications',
+    })
     void sendAdminActivityEmail({
       title: 'Customer updated an order',
       subject: 'Cotton Candy order updated by customer',

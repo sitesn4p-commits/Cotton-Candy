@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { Category } from '../models/Category.js'
+import { AdminWebPushSubscription } from '../models/AdminWebPushSubscription.js'
 import { ContactMessage } from '../models/ContactMessage.js'
 import { MediaAsset } from '../models/MediaAsset.js'
 import { NewsletterSubscriber } from '../models/NewsletterSubscriber.js'
@@ -9,7 +10,7 @@ import { Promotion } from '../models/Promotion.js'
 import { PromotionEmail } from '../models/PromotionEmail.js'
 import { ServiceRequest } from '../models/ServiceRequest.js'
 import { SiteSettings } from '../models/SiteSettings.js'
-import { requireAdmin, requireAuth } from '../middleware/auth.js'
+import { requireAdmin, requireAuth, type AuthenticatedRequest } from '../middleware/auth.js'
 import { upload } from '../middleware/upload.js'
 import { removeAsset, uploadAsset } from '../services/cloudinary.js'
 import { sendActivationEmail, sendCompletionEmail, sendPromotionEmail } from '../services/email.js'
@@ -68,6 +69,38 @@ function uploadedFiles(files: Express.Request['files'], field: string) {
 }
 
 router.use(requireAuth, requireAdmin)
+
+router.post('/web-push-subscriptions', async (req, res, next) => {
+  try {
+    const endpoint = typeof req.body.endpoint === 'string' ? req.body.endpoint.trim() : ''
+    const keys = req.body.keys && typeof req.body.keys === 'object' ? req.body.keys as Record<string, unknown> : {}
+    const p256dh = typeof keys.p256dh === 'string' ? keys.p256dh.trim() : ''
+    const auth = typeof keys.auth === 'string' ? keys.auth.trim() : ''
+    let validEndpoint = false
+    try { validEndpoint = new URL(endpoint).protocol === 'https:' } catch { /* Invalid endpoint is rejected below. */ }
+    if (!validEndpoint || endpoint.length > 2048 || !/^[A-Za-z0-9_-]{20,200}$/.test(p256dh) || !/^[A-Za-z0-9_-]{8,100}$/.test(auth)) {
+      return res.status(400).json({ message: 'A valid browser push subscription is required.' })
+    }
+    const adminId = (req as AuthenticatedRequest).auth?.sub
+    if (!adminId) return res.status(401).json({ message: 'Sign in is required.' })
+    await AdminWebPushSubscription.findOneAndUpdate(
+      { endpoint },
+      { endpoint, keys: { p256dh, auth }, adminId, active: true },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    )
+    return res.status(201).json({ message: 'Browser notifications are enabled for this device.' })
+  } catch (error) { return next(error) }
+})
+
+router.delete('/web-push-subscriptions', async (req, res, next) => {
+  try {
+    const endpoint = typeof req.body.endpoint === 'string' ? req.body.endpoint.trim() : ''
+    if (!endpoint || endpoint.length > 2048) return res.status(400).json({ message: 'A browser push endpoint is required.' })
+    const adminId = (req as AuthenticatedRequest).auth?.sub
+    await AdminWebPushSubscription.deleteOne({ endpoint, adminId })
+    return res.status(204).send()
+  } catch (error) { return next(error) }
+})
 
 router.get('/dashboard', async (_req, res, next) => {
   try {
